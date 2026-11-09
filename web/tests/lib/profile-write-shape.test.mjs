@@ -17,7 +17,7 @@ const loader = `
   export async function resolve(specifier, context, nextResolve) {
     if (specifier.startsWith("@/")) {
       const base = path.join(${JSON.stringify(webSrc)}, specifier.slice(2));
-      for (const ext of [".ts", ".tsx", ".mjs", ".js", ""]) {
+      for (const ext of [".js", ".jsx", ".mjs", ""]) {
         if (existsSync(base + ext)) return { url: pathToFileURL(base + ext).href, shortCircuit: true };
       }
     }
@@ -26,8 +26,8 @@ const loader = `
 `;
 register(`data:text/javascript,${encodeURIComponent(loader)}`, pathToFileURL(webSrc));
 
-const { POST: updateProfile } = await import("../../src/app/api/profile/route.ts");
-const { POST: updateCadence } = await import("../../src/app/api/followups/cadence/route.ts");
+const { POST: updateProfile } = await import("../../src/app/api/profile/route.js");
+const { POST: updateCadence } = await import("../../src/app/api/followups/cadence/route.js");
 
 const routes = [
   { name: "profile", post: updateProfile, patch: { name: "Updated Fixture Candidate" } },

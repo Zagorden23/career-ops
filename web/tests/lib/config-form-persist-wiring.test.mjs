@@ -13,7 +13,7 @@ import { test } from "node:test";
 // first-run-copy.test.mjs and decision-card-cta.test.mjs.
 
 const src = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "../../src/components/config-form.tsx"),
+  join(dirname(fileURLToPath(import.meta.url)), "../../src/components/config-form.jsx"),
   "utf8",
 );
 
@@ -28,7 +28,7 @@ test("the auto-selected CLI is persisted, not only rendered", () => {
   assert.match(
     src,
     /persistCliId\(\s*cliId\s*\)/,
-    "config-form.tsx must call persistCliId(cliId) so the rendered default is written to storage",
+    "config-form.jsx must call persistCliId(cliId) so the rendered default is written to storage",
   );
 });
 

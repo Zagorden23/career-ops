@@ -1,6 +1,6 @@
 /**
  * apply-cover-resolver.test.mjs — regression tests for resolveTailoredCover()
- * (web/src/lib/apply/cover.ts), the resolver behind the pipeline page's
+ * (web/src/lib/apply/cover.js), the resolver behind the pipeline page's
  * "View cover" link and /api/cover-pdf.
  *
  * Two classes of bug are pinned here.
@@ -30,9 +30,8 @@
  * present when this suite runs. Same reasoning as apply-cv-resolver.test.mjs;
  * see that file's header.
  *
- * resolveTailoredCover() is TypeScript that reaches web/src/lib/career-ops via
- * the `@/` path alias (Next's tsconfig paths). Node 22 type-strips .ts on
- * import, but it does NOT understand that alias — `npm test` here is plain
+ * resolveTailoredCover() reaches web/src/lib/career-ops via the `@/` path
+ * alias (Next's jsconfig paths). Node does NOT understand that alias — `npm test` here is plain
  * `node --test`, with no webpack/SWC in the loop. The tiny inline loader below
  * teaches node:module's resolution hook to resolve `@/*` to web/src/* (with
  * extension probing) for the lifetime of this process. Test-only, no build
@@ -50,7 +49,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { register } from 'node:module';
 
 const WEB_SRC = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src');
-const ALIAS_EXTS = ['.ts', '.tsx', '.mjs', '.js', '.mts'];
+const ALIAS_EXTS = ['.js', '.jsx', '.mjs'];
 const loaderSrc = [
   "import { existsSync } from 'node:fs';",
   "import path from 'node:path';",
@@ -74,13 +73,13 @@ const loaderSrc = [
 ].join('\n');
 register('data:text/javascript,' + encodeURIComponent(loaderSrc), pathToFileURL(WEB_SRC + '/'));
 
-const { resolveTailoredCover } = await import('../../src/lib/apply/cover.ts');
+const { resolveTailoredCover } = await import('../../src/lib/apply/cover.js');
 const { matchesTailoredCover } = await import('../../src/lib/apply/cv-match.mjs');
 
 /**
  * Provision a throwaway career-ops root with an output/ dir, redirected via the
  * same CAREER_OPS_ROOT override careerOpsRoot() reads (see
- * web/src/lib/career-ops.ts) — no monkeypatching fs needed.
+ * web/src/lib/career-ops.js) — no monkeypatching fs needed.
  *
  * `rows` (optional) are written as data/applications.md in the legacy fixed
  * column order parseApplications falls back to, so the applicationNumber path

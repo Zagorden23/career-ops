@@ -118,7 +118,7 @@ test("cacheLogoResult: writes the icon and the miss sentinel, and nothing for an
 
 test("the logo route resolves and caches through logo-fetch.mjs, not a private copy", () => {
   const route = readFileSync(
-    join(dirname(fileURLToPath(import.meta.url)), "../../src/app/api/logo/route.ts"),
+    join(dirname(fileURLToPath(import.meta.url)), "../../src/app/api/logo/route.js"),
     "utf8",
   );
   assert.match(route, /import\s*{[^}]*\bresolveLogo\b[^}]*}\s*from\s*"@\/lib\/core\/logo-fetch\.mjs"/);

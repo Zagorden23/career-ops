@@ -5,9 +5,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import "../helpers/web-ts-alias-loader.mjs";
 
-const skipTs = !process.features?.typescript && "this Node cannot import career-ops.ts (no type stripping)";
-const careerOps = skipTs ? {} : await import("@/lib/career-ops");
-const analytics = skipTs ? {} : await import("@/lib/analytics-data");
+const careerOps = await import("@/lib/career-ops");
+const analytics = await import("@/lib/analytics-data");
 
 const ROWS = 40;
 const report = (archetype) => `# Evaluation\n\n## Machine Summary\n\n\`\`\`yaml\narchetype_primary: ${archetype}\n\`\`\`\n`;
@@ -31,7 +30,7 @@ function seed(root) {
   ].join("\n"));
 }
 
-test("Search stats reads the tracker and lists reports/ once for the whole page", { skip: skipTs }, () => {
+test("Search stats reads the tracker and lists reports/ once for the whole page", () => {
   const root = mkdtempSync(join(tmpdir(), "co-analytics-lookup-once-"));
   const prevRoot = process.env.CAREER_OPS_ROOT;
   const { readFileSync, readdirSync } = fs;
@@ -67,7 +66,7 @@ test("Search stats reads the tracker and lists reports/ once for the whole page"
   }
 });
 
-test("two rows that share a number keep the report each one links", { skip: skipTs }, () => {
+test("two rows that share a number keep the report each one links", () => {
   const root = mkdtempSync(join(tmpdir(), "co-analytics-shared-number-"));
   const prevRoot = process.env.CAREER_OPS_ROOT;
   try {
@@ -93,7 +92,7 @@ test("two rows that share a number keep the report each one links", { skip: skip
   }
 });
 
-test("a reports path that is not a directory is an error, not missing data", { skip: skipTs }, () => {
+test("a reports path that is not a directory is an error, not missing data", () => {
   const root = mkdtempSync(join(tmpdir(), "co-analytics-reports-not-dir-"));
   const prevRoot = process.env.CAREER_OPS_ROOT;
   try {

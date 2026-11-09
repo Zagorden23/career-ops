@@ -15,22 +15,22 @@ import { listTree } from "../../../lib/walk-tree.mjs";
 // unavailable, because every existsSync(rootScript(...)) looked in the data dir.
 //
 // Source-reading assertions, in the style of config-form-persist-wiring.test.mjs:
-// career-ops.ts imports through the "@/..." alias, so it can't be loaded here.
+// career-ops.js imports through the "@/..." alias, so it can't be loaded here.
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), "../../src");
 const read = (rel) => readFileSync(join(SRC, rel), "utf8");
 
-const sources = listTree(SRC, { match: /\.(ts|tsx|mjs)$/ }).map((p) => ({ rel: relative(SRC, p).split(sep).join("/"), src: readFileSync(p, "utf8") }));
+const sources = listTree(SRC, { match: /\.(js|jsx|mjs)$/ }).map((p) => ({ rel: relative(SRC, p).split(sep).join("/"), src: readFileSync(p, "utf8") }));
 
 test("rootScript resolves against the code checkout, not the data root", () => {
-  const src = read("lib/career-ops.ts");
+  const src = read("lib/career-ops.js");
   const body = src.slice(src.indexOf("export function rootScript"), src.indexOf("export function trackerCanDelete"));
   assert.match(body, /resolveCodeRoot\(process\.cwd\(\), process\.env\)/);
   assert.doesNotMatch(body, /careerOpsRoot\(\)/);
 });
 
 test("careerOpsRoot derives the data root from the same checkout base", () => {
-  const src = read("lib/career-ops.ts");
+  const src = read("lib/career-ops.js");
   const body = src.slice(src.indexOf("export function careerOpsRoot"), src.indexOf("export function rootScript"));
   assert.match(body, /const coreRoot = resolveCodeRoot\(process\.cwd\(\), process\.env\)/);
 });
@@ -69,14 +69,14 @@ test("the cwd check detects both forbidden forms", () => {
 
 // The assistant spawns an agent CLI that works on the user's files, so its cwd is
 // the data root; it only imports rootScript() to load lib/personalization.
-const AGENT_CWD_ALLOWED = new Set(["app/api/assistant/route.ts"]);
+const AGENT_CWD_ALLOWED = new Set(["app/api/assistant/route.js"]);
 
 test("core scripts run with the code checkout as cwd", () => {
   // The CLI runs scripts from the checkout (doctor.mjs, e.g., looks for the MCP
   // config in its cwd); scripts find the data root themselves via path-resolver.
   const offenders = [];
   for (const { rel, src } of sources) {
-    if (!/rootScript\(/.test(src) || rel === "lib/career-ops.ts" || AGENT_CWD_ALLOWED.has(rel)) continue;
+    if (!/rootScript\(/.test(src) || rel === "lib/career-ops.js" || AGENT_CWD_ALLOWED.has(rel)) continue;
     if (DATA_ROOT_CWD.test(src)) offenders.push(rel);
   }
   assert.deepEqual(offenders, [], `script spawns must use cwd: resolveCodeRoot(process.cwd(), process.env):\n${offenders.join("\n")}`);

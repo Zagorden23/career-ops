@@ -8,7 +8,7 @@ import { test } from "node:test";
 // both labeled Coming soon. Nothing behind them runs. Hide them until it does.
 
 const src = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "../../src/components/config-form.tsx"),
+  join(dirname(fileURLToPath(import.meta.url)), "../../src/components/config-form.jsx"),
   "utf8",
 );
 

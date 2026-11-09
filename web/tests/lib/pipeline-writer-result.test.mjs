@@ -1,4 +1,4 @@
-// The "Add to pipeline" writer child (src/lib/core/pipeline.ts) answers with
+// The "Add to pipeline" writer child (src/lib/core/pipeline.js) answers with
 // one JSON line. A child that crashes before answering, e.g. because scan.mjs
 // fails to import, printed nothing on stdout, and that empty answer parsed as
 // `{}`: "added 0, no error", the same answer as "nothing new to add".
@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 
 import { pipelineWriterResult } from "../../src/lib/core/pipeline-writer-result.mjs";
 
-const PIPELINE_TS = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "lib", "core", "pipeline.ts");
+const PIPELINE_TS = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "lib", "core", "pipeline.js");
 
 test("the writer's own answer passes through", () => {
   assert.deepEqual(pipelineWriterResult('{"added":3}', "", { code: 0, signal: null }), { added: 3 });
@@ -50,7 +50,7 @@ test("output that is not the writer's answer is a failure", () => {
   assert.match(pipelineWriterResult("not json", "boom", { code: 2, signal: null }).error ?? "", /exit code 2\): boom/);
 });
 
-test("pipeline.ts reads the child's answer through this helper", () => {
+test("pipeline.js reads the child's answer through this helper", () => {
   const src = readFileSync(PIPELINE_TS, "utf8");
   assert.match(src, /child\.on\("close", \(code, signal\) => resolve\(pipelineWriterResult\(out, err, \{ code, signal \}\)\)\)/);
   assert.doesNotMatch(src, /out\.trim\(\) \|\| "\{\}"/);

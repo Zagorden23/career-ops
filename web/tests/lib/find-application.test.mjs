@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import "../helpers/web-ts-alias-loader.mjs";
 
-const { findApplication, findReportFile } = await import("../../src/lib/career-ops.ts");
+const { findApplication, findReportFile } = await import("../../src/lib/career-ops.js");
 
 function withTracker(fn) {
   const root = mkdtempSync(join(tmpdir(), "find-app-"));

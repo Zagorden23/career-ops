@@ -1,16 +1,15 @@
 // Node ESM resolver hook that teaches `node --test` (no ts-node/tsx in this repo)
-// to follow the "@/…" import alias web/src TS files use (mirrors web/tsconfig.json's
+// to follow the "@/…" import alias web/src files use (mirrors web/jsconfig.json's
 // `paths: { "@/*": ["./src/*"] }`, which only webpack/SWC understand natively).
-// Node 22 already type-strips .ts on import — this hook is ONLY about specifier
-// resolution, not transpilation.
+// This hook is ONLY about specifier resolution, not transpilation.
 //
 // Usage: import this module for side effect, THEN reach the aliased module with a
 // dynamic import, so the hook is installed before that specifier is resolved:
 //
 //   import "../helpers/web-ts-alias-loader.mjs";
-//   const { thing } = await import("../../src/lib/thing.ts");
+//   const { thing } = await import("../../src/lib/thing.js");
 //
-// A static `import … from "…/thing.ts"` would NOT work: ESM resolves every static
+// A static `import … from "…/thing.js"` would NOT work: ESM resolves every static
 // specifier in a module before any of its bodies run, so the hook would still be
 // uninstalled at the moment it is needed.
 import { register } from "node:module";
@@ -36,21 +35,21 @@ const WEB_SRC = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".
 const HAS_EXT = /\.(m?[jt]sx?|json)$/i;
 
 export async function resolve(specifier, context, nextResolve) {
-  // Extensionless RELATIVE specifiers ("./portals") are the same TS convention as
+  // Extensionless RELATIVE specifiers ("./portals") are the same convention as
   // the alias form, and just as unresolvable by Node; only those from inside
   // web/src are followed, so no other module's resolution changes.
   if (/^\.\.?\//.test(specifier) && !HAS_EXT.test(specifier) && context.parentURL?.startsWith("file:")) {
     const from = path.dirname(fileURLToPath(context.parentURL));
     if (from.startsWith(WEB_SRC)) {
-      const hit = [".ts", ".tsx", ".mjs"].map((e) => path.resolve(from, specifier) + e).find((c) => existsSync(c));
+      const hit = [".js", ".jsx", ".mjs"].map((e) => path.resolve(from, specifier) + e).find((c) => existsSync(c));
       if (hit) return nextResolve(pathToFileURL(hit).href, context);
     }
   }
   if (!specifier.startsWith("@/")) return nextResolve(specifier, context);
   const base = path.join(WEB_SRC, specifier.slice(2));
   // Specifiers that already name an extension (e.g. "@/lib/tracker-table.mjs")
-  // resolve as-is; extensionless ones (the TS convention) try .ts then .tsx.
-  const candidates = HAS_EXT.test(specifier) ? [base] : [`${base}.ts`, `${base}.tsx`];
+  // resolve as-is; extensionless ones try .js then .jsx.
+  const candidates = HAS_EXT.test(specifier) ? [base] : [`${base}.js`, `${base}.jsx`];
   // Falling back to the FIRST candidate rather than to the raw specifier keeps
   // Node's own error useful: a miss then reports the file that is actually
   // absent instead of blaming the unresolvable package "@/lib".

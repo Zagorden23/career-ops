@@ -1,7 +1,7 @@
 // The agentic interpreter reports whether it LAUNCHED the user's CLI, separately
 // from whether it produced fields (#2507, #2941).
 //
-// session.ts surfaces a "this runtime cannot be permission-restricted" notice
+// session.js surfaces a "this runtime cannot be permission-restricted" notice
 // after the interpreter runs. That notice is about a launch: an agent that ran
 // and came back empty still read the page with its default access, while an
 // interpreter that stopped before spawning — no CLI installed, no controls to
@@ -9,8 +9,8 @@
 // through the fields array, so an empty result silenced the notice and, keyed
 // on the call instead, a never-launched CLI would have raised it.
 //
-// Same TypeScript import technique as apply-planner-fencing.test.mjs: skipped
-// on a Node without type stripping or module.registerHooks.
+// Same import technique as apply-planner-fencing.test.mjs: skipped on a Node
+// without module.registerHooks.
 //
 // Run:  node --test tests/lib/apply-agent-interpret-fencing.test.mjs
 
@@ -24,36 +24,32 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const SRC = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "src");
 
 const { registerHooks } = await import("node:module");
-const canImportTs = Boolean(process.features?.typescript) && typeof registerHooks === "function";
-const skip = !canImportTs && "this Node cannot import agent-interpret.ts (no type stripping or module.registerHooks)";
+const canHook = typeof registerHooks === "function";
+const skip = !canHook && "this Node has no module.registerHooks (needs 22.15+ / 23.5+)";
 
-// tsconfig lets app code import "@/lib/clis" and "./extract" without an
+// jsconfig lets app code import "@/lib/clis" and "./extract" without an
 // extension; Node's ESM loader does not, so the hook adds the one that exists.
 const withExtension = (href) => {
   const file = fileURLToPath(href);
   if (path.extname(file)) return href;
-  for (const ext of [".ts", ".mjs", ".js"]) if (fs.existsSync(file + ext)) return pathToFileURL(file + ext).href;
+  for (const ext of [".js", ".jsx", ".mjs"]) if (fs.existsSync(file + ext)) return pathToFileURL(file + ext).href;
   return href;
 };
 
-if (canImportTs) registerHooks({
+if (canHook) registerHooks({
   resolve(specifier, context, nextResolve) {
     if (specifier.startsWith("@/")) {
       return nextResolve(withExtension(pathToFileURL(path.join(SRC, specifier.slice(2))).href), context);
     }
-    if ((specifier.startsWith("./") || specifier.startsWith("../")) && context.parentURL?.endsWith(".ts")) {
+    if ((specifier.startsWith("./") || specifier.startsWith("../")) && context.parentURL?.endsWith(".js")) {
       return nextResolve(withExtension(new URL(specifier, context.parentURL).href), context);
     }
     return nextResolve(specifier, context);
   },
-  load(url, context, nextLoad) {
-    if (url.endsWith(".ts")) return nextLoad(url, { ...context, format: "module-typescript" });
-    return nextLoad(url, context);
-  },
 });
 
-const { interpretFormWithAgent, agentInterpretForm } = canImportTs
-  ? await import("../../src/lib/apply/agent-interpret.ts")
+const { interpretFormWithAgent, agentInterpretForm } = canHook
+  ? await import("../../src/lib/apply/agent-interpret.js")
   : { interpretFormWithAgent: null, agentInterpretForm: null };
 
 /** A frame stand-in: the interpreter only calls evaluate() on it. */
@@ -115,7 +111,7 @@ test("a launched CLI that returns nothing usable still reports the launch", { sk
   const result = await interpretFormWithAgent(frameOf(ONE_CONTROL), "claude", "Form");
 
   // Then the fields are empty — the caller falls back — but the launch is
-  // reported, which is what the fencing notice in session.ts keys on.
+  // reported, which is what the fencing notice in session.js keys on.
   assert.deepEqual(result.fields, []);
   assert.equal(result.spawned, true);
   assert.equal(stub.launches(), 1, "the CLI was launched exactly once");

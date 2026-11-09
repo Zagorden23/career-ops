@@ -5,7 +5,7 @@
 // filled the tracker's date column with tomorrow's date, while the CLI
 // (batch-runner.sh) and the followups route already used the local day.
 //
-// route.ts is TypeScript and imports via the `@/` alias, which plain
+// route.js imports via the `@/` alias, which plain
 // `node --test` cannot resolve without the Next.js build, so — same as
 // tests/lib/pipeline-local-today.test.mjs (#3070) — this reads the source and
 // asserts the shape.
@@ -26,7 +26,7 @@ const SRC = join(
   "app",
   "api",
   "run",
-  "route.ts",
+  "route.js",
 );
 const src = readFileSync(SRC, "utf8");
 

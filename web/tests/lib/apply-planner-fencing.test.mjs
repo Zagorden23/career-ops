@@ -1,17 +1,16 @@
 // The apply planner runs under the same fence as every other worker (#2507).
 //
-// #3428 lifted the planner spawn out of api/apply/prefill/route.ts into
-// lib/apply/planner.ts, and #2941 made spawnHeadlessCli refuse to start without
+// #3428 lifted the planner spawn out of api/apply/prefill/route.js into
+// lib/apply/planner.js, and #2941 made spawnHeadlessCli refuse to start without
 // a capability record. The two meet in runPlanner: it declares the planner as
 // localReadOnly, lets the fencer translate that for the chosen runtime, and
 // turns a fencing refusal into a resolved PlannerRun carrying `refused` — never
 // a throw inside the promise executor, which would leave the caller's NDJSON
 // stream open forever.
 //
-// planner.ts is TypeScript and this test is .mjs. Unlike clis-permissions.test.mjs
-// (which reads clis.ts as text), the contract here is behaviour, not spelling,
-// so the module is imported for real: Node strips the type annotations, and a
-// resolve hook maps the `@/` alias that tsconfig gives the app to src/.
+// Unlike clis-permissions.test.mjs (which reads clis.js as text), the contract
+// here is behaviour, not spelling, so the module is imported for real: a
+// resolve hook maps the `@/` alias that jsconfig gives the app to src/.
 //
 // Run:  node --test tests/lib/apply-planner-fencing.test.mjs
 
@@ -24,32 +23,26 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const SRC = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "src");
 
-// engines allows Node 22.13+ (23.4+ on 23.x), but importing a .ts file needs type stripping
-// (default from 22.18 / 23.6) and module.registerHooks (22.15 / 23.5). CI runs
-// 24; on an older local Node the three cases skip rather than fail — which is
+// engines allows Node 22.13+ (23.4+ on 23.x), but the hook below needs
+// module.registerHooks (22.15 / 23.5). CI runs 24; on an older local Node the
+// cases skip rather than fail — which is
 // why registerHooks is looked up at runtime rather than imported by name: a
 // static named import of an export that does not exist fails the whole file
 // before any skip can run.
 const { registerHooks } = await import("node:module");
-const canImportTs = Boolean(process.features?.typescript) && typeof registerHooks === "function";
-const skip = !canImportTs && "this Node cannot import planner.ts (no type stripping or module.registerHooks)";
+const canHook = typeof registerHooks === "function";
+const skip = !canHook && "this Node has no module.registerHooks (needs 22.15+ / 23.5+)";
 
-if (canImportTs) registerHooks({
+if (canHook) registerHooks({
   resolve(specifier, context, nextResolve) {
     if (specifier.startsWith("@/")) {
       return nextResolve(pathToFileURL(path.join(SRC, specifier.slice(2))).href, context);
     }
     return nextResolve(specifier, context);
   },
-  // web/package.json declares no "type", so Node would sniff planner.ts twice
-  // and warn; name the format it is.
-  load(url, context, nextLoad) {
-    if (url.endsWith(".ts")) return nextLoad(url, { ...context, format: "module-typescript" });
-    return nextLoad(url, context);
-  },
 });
 
-const { runPlanner } = canImportTs ? await import("../../src/lib/apply/planner.ts") : { runPlanner: null };
+const { runPlanner } = canHook ? await import("../../src/lib/apply/planner.js") : { runPlanner: null };
 
 /** A runPlanner call with everything but the runtime fixed; returns the run and the log lines. */
 async function plan({ cliId, spec, binPath }) {

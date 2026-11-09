@@ -11,7 +11,7 @@ database, no server. If you never run it, nothing about your CLI workflow change
 
 ## Quick start
 
-Requires Node 22.13+ (or 23.4+ on the 23.x line), the same floor as the rest of career-ops. `npm test` runs with `--experimental-strip-types` (see [Tests](#tests)) because some suites import `.ts` modules directly, and Node strips types by default only from 22.18.
+Requires Node 22.13+ (or 23.4+ on the 23.x line), the same floor as the rest of career-ops. The app and its tests are plain JavaScript (`.js` / `.jsx` / `.mjs`), so `npm test` needs no type stripping or loader flags (see [Tests](#tests)).
 
 ```bash
 cd web
@@ -118,7 +118,6 @@ directory.
 ```bash
 npm run dev          # dev server (Turbopack)
 npm test             # unit suites (node --test, no framework)
-npx tsc --noEmit     # typecheck
 npm run build        # production build
 npm run test:browser # tests/lib/*.browser.test.mjs in Chrome, each against its own server (after build)
 ```
@@ -216,7 +215,7 @@ header, so on a widened bind the allow-list filters honest clients rather than
 hostile ones; and a `0.0.0.0` bind is IPv4-only, so an opted-in IPv6 address will
 pass the filter with nothing listening for it.
 
-The guard covers page routes as well as `/api/*` (`src/proxy.ts`'s matcher spans
+The guard covers page routes as well as `/api/*` (`src/proxy.js`'s matcher spans
 everything but build assets). That is not about the bind: a page you visit can
 re-resolve its own domain to `127.0.0.1` and read the dashboard from your own
 browser as same-origin, which a loopback bind does nothing to stop. The `Host`
@@ -264,11 +263,11 @@ earlier versions don't expand CLI globs for `node --test`, so `npm test` prints
 Three constraints follow from all this:
 
 - **Keep tests out of `src/`.** `src/` is the Next.js app's own tree, scanned by
-  `next build`'s file tracing and `tsc --noEmit`; test files there entangle
+  `next build`'s file tracing; test files there entangle
   fixtures with build and route conventions.
-- **Use `.mjs`, not `.ts`.** There is no test framework and no TypeScript loader
-  by design — `node --test` cannot run a `.ts` suite, so one would look like
-  coverage and never execute. Extract the logic under test into a plain `.mjs`
+- **Use `.mjs` for test files.** There is no test framework by design, and
+  `npm test` collects only `tests/**/*.test.mjs`, so a suite under any other
+  extension would look like coverage and never execute. Extract the logic under test into a plain `.mjs`
   module (the pattern `src/lib/pdf-paths.mjs` and `src/lib/pdf-render.mjs`
   already follow) and import it from the test.
 - **Web suites use `node:test`.** Here you write

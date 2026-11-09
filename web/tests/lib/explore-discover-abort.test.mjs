@@ -1,7 +1,7 @@
 // Discover used to abort itself: history.replaceState of the filter URL is a
 // Next.js navigation, which cancels POST /api/explore; AbortError was then
-// painted as failed/empty. These files are TypeScript, so this reads source
-// the way core-writer-await.test.mjs does.
+// painted as failed/empty. These are client components and a Next.js route,
+// so this reads source the way core-writer-await.test.mjs does.
 //
 // Run:  node --test tests/lib/explore-discover-abort.test.mjs
 
@@ -12,9 +12,9 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src");
-const provider = readFileSync(join(ROOT, "components/explore/explore-provider.tsx"), "utf8");
-const scan = readFileSync(join(ROOT, "lib/core/scan.ts"), "utf8");
-const route = readFileSync(join(ROOT, "app/api/explore/route.ts"), "utf8");
+const provider = readFileSync(join(ROOT, "components/explore/explore-provider.jsx"), "utf8");
+const scan = readFileSync(join(ROOT, "lib/core/scan.js"), "utf8");
+const route = readFileSync(join(ROOT, "app/api/explore/route.js"), "utf8");
 const scanArgs = readFileSync(join(ROOT, "lib/core/scan-args.mjs"), "utf8");
 
 // The body of one `const <name> = useCallback(async () => { ... }, [...])`.
@@ -22,10 +22,10 @@ const scanArgs = readFileSync(join(ROOT, "lib/core/scan-args.mjs"), "utf8");
 function callbackBody(name) {
   const head = `const ${name} = useCallback(async`;
   const start = provider.indexOf(head);
-  assert.ok(start >= 0, `explore-provider.tsx: could not find the ${name} callback. Update this extractor.`);
+  assert.ok(start >= 0, `explore-provider.jsx: could not find the ${name} callback. Update this extractor.`);
   const next = provider.indexOf("= useCallback(", start + head.length);
   const body = provider.slice(start, next < 0 ? undefined : next);
-  assert.ok(body.length > 500, `explore-provider.tsx: the ${name} callback came back nearly empty. Update this extractor.`);
+  assert.ok(body.length > 500, `explore-provider.jsx: the ${name} callback came back nearly empty. Update this extractor.`);
   return body;
 }
 
@@ -95,7 +95,7 @@ test("Discover writes nothing to pipeline.md: only the offers the user picks are
   assert.match(scanArgs, /"--dry-run"/, "the scanner child stays a dry run");
 
   // The writer is the explicit "Add to pipeline" route, fed by the user's pick.
-  const addRoute = readFileSync(join(ROOT, "app/api/explore/add/route.ts"), "utf8");
+  const addRoute = readFileSync(join(ROOT, "app/api/explore/add/route.js"), "utf8");
   assert.match(addRoute, /addOffersToPipeline\(offers\)/);
 
   // And the client never marks an offer as added from a scan event.

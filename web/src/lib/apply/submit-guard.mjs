@@ -2,7 +2,7 @@
  * submit-guard.mjs — the one definition of "this control submits the form",
  * shared by the two places in the agentic drive loop that have to agree on it:
  * the snapshot that decides which elements the planner may address
- * (`web/src/lib/apply/drive.ts`), and the action path that executes what it
+ * (`web/src/lib/apply/drive.js`), and the action path that executes what it
  * picked (`drive-action.mjs`).
  *
  * NEVER-SUBMIT is by construction for the planner's ACTION VOCABULARY

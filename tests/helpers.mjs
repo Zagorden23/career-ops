@@ -1013,7 +1013,7 @@ export function startsRegex(src, i) {
  * scan-history call is actually written with — the status string argument
  * (`'added'`, `'skipped_title'`), a commented-out call, and the template-string
  * child snippet the repo already uses to drive these writers
- * (web/src/lib/core/pipeline.ts builds one).
+ * (web/src/lib/core/pipeline.js builds one).
  *
  * Regex literals are NOT distinguished from division. A `/.../ ` argument to
  * appendToScanHistory would make the gate fail LOUDLY, which is the safe

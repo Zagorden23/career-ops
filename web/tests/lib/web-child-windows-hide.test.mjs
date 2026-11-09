@@ -3,7 +3,7 @@
 // gone stale kills each child at DLL init with 0xC0000142, with no stdout and
 // no stderr (#3809). #4253 put windowsHide on spawnHeadlessCli and on the four
 // routes that execFile a core script, on the rule that nothing the web spawns
-// needs a console. The status and follow-up writes (core-cli.ts), tracker
+// needs a console. The status and follow-up writes (core-cli.js), tracker
 // delete, PDF render, evaluate persist, the scanner, the pipeline writer,
 // employer discovery, the fencing probe and the version probe all kept
 // launching with one.
@@ -12,7 +12,7 @@
 // through a recording child_process wrapper. A census then reads every call of
 // a child_process launcher in web/src (and of the spawnFn the PDF and persist
 // helpers are handed) and requires windowsHide: true in that call's own
-// arguments. A route.ts execFile is left to core-script-routes.test.mjs, which
+// arguments. A route.js execFile is left to core-script-routes.test.mjs, which
 // drives each of those routes and asserts the same thing.
 
 import { after, before, test } from "node:test";
@@ -75,7 +75,7 @@ function standIn(name, body) {
 test("runCoreCli (status and follow-up writes) launches with process.execPath and windowsHide", async () => {
   // Given set-status answers normally
   standIn("set-status", "console.log(JSON.stringify({ ok: true }));");
-  const { runCoreCli } = await import("@/lib/core-cli.ts");
+  const { runCoreCli } = await import("@/lib/core-cli.js");
 
   // When the web runs it
   launches.length = 0;
@@ -92,7 +92,7 @@ test("runCoreCli (status and follow-up writes) launches with process.execPath an
 test("tracker delete launches tracker.mjs with windowsHide", async () => {
   // Given a tracker.mjs new enough to delete (trackerCanDelete reads its source)
   standIn("tracker", "// tracker.mjs delete --num stand-in\nprocess.exit(0);");
-  const { POST } = await import("@/app/api/tracker/delete/route.ts");
+  const { POST } = await import("@/app/api/tracker/delete/route.js");
 
   // When a dry-run delete is requested
   launches.length = 0;
@@ -216,21 +216,21 @@ function launchCalls(file) {
 // file and the literal command they launch. An entry the census no longer
 // sees fails below, so this list can only shrink.
 const POSIX_ONLY = new Map([
-  ["lib/scheduler-status.ts crontab", "readUnixTask's linux branch reads the user's crontab"],
-  ["lib/scheduler-status.ts launchctl", "readUnixTask's darwin branch asks launchd for the job"],
+  ["lib/scheduler-status.js crontab", "readUnixTask's linux branch reads the user's crontab"],
+  ["lib/scheduler-status.js launchctl", "readUnixTask's darwin branch asks launchd for the job"],
 ]);
 
 test("census: every child launch in web/src passes windowsHide: true", () => {
   const src = fileURLToPath(new URL("../../src", import.meta.url));
-  const files = listTree(src, { match: /\.(?:ts|tsx|mjs|js)$/ });
+  const files = listTree(src, { match: /\.(?:js|jsx|mjs)$/ });
   const seen = [];
   const offenders = [];
   const posixOnlySeen = new Set();
   for (const file of files) {
     const rel = relative(src, file).split(sep).join("/");
     for (const call of launchCalls(file)) {
-      // Each route.ts execFile is driven for real by core-script-routes.test.mjs.
-      if (call.name === "execFile" && rel.startsWith("app/api/") && rel.endsWith("/route.ts")) continue;
+      // Each route.js execFile is driven for real by core-script-routes.test.mjs.
+      if (call.name === "execFile" && rel.startsWith("app/api/") && rel.endsWith("/route.js")) continue;
       seen.push(`${rel}:${call.line} ${call.name}`);
       const posixKey = `${rel} ${call.command}`;
       if (POSIX_ONLY.has(posixKey)) {
@@ -256,7 +256,7 @@ test("census: every child launch in web/src passes windowsHide: true", () => {
 test("census masker: launcher names inside comments, strings and regexes are not calls", () => {
   const dir = mkdtempSync(join(tmpdir(), "co-child-hide-mask-"));
   try {
-    const file = join(dir, "probe.ts");
+    const file = join(dir, "probe.js");
     writeFileSync(
       file,
       [

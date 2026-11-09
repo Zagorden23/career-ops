@@ -2,7 +2,7 @@
 // `node remember-cli.mjs`) before falling back to the first installed one, so
 // doctor, the scripts and the web agree on one CLI.
 //
-// Run:  node --experimental-strip-types --test tests/lib/remembered-cli.test.mjs
+// Run:  node --test tests/lib/remembered-cli.test.mjs
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { pickDefaultInstalled, pickUsableCli } from "../../src/lib/cli-pick.mjs";
 import { readRememberedCli } from "../../src/lib/remembered-cli.mjs";
 
-const { resolveCliId } = await import("../../src/lib/saved-cli.ts");
+const { resolveCliId } = await import("../../src/lib/saved-cli.js");
 
 const TWO = [
   { id: "claude", installed: true },

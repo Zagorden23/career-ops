@@ -181,10 +181,9 @@ test("layoutSankey positions nodes and draws a path per live link", () => {
 // ── readStatusLog(): the ledger read behind the Sankey ──────────────────────
 // A missing data/status-log.tsv is normal and charts from the snapshot; any
 // other read failure must surface instead of passing for an empty log. It lives
-// in career-ops.ts, reached through the shared @/ alias hook, with
+// in career-ops.js, reached through the shared @/ alias hook, with
 // CAREER_OPS_ROOT pointed at a scratch data root.
-const skipTs = !process.features?.typescript && "this Node cannot import career-ops.ts (no type stripping)";
-const { readStatusLog, readApplicationStatusLog } = skipTs ? {} : await import("@/lib/career-ops");
+const { readStatusLog, readApplicationStatusLog } = await import("@/lib/career-ops");
 
 function withDataRoot(setup, fn) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "sankey-status-log-"));
@@ -202,18 +201,18 @@ function withDataRoot(setup, fn) {
   }
 }
 
-test("readStatusLog: a present log is parsed from the data root", { skip: skipTs }, () => {
+test("readStatusLog: a present log is parsed from the data root", () => {
   const tsv = "13\t2026-08-26\tInterview\tRejected\tset-status\t\n";
   const rows = withDataRoot((data) => fs.writeFileSync(path.join(data, "status-log.tsv"), tsv), () => readStatusLog());
   assert.equal(rows.length, 1);
   assert.equal(rows[0].num, 13);
 });
 
-test("readStatusLog: a missing log is an empty log", { skip: skipTs }, () => {
+test("readStatusLog: a missing log is an empty log", () => {
   assert.deepEqual(withDataRoot(() => {}, () => readStatusLog()), []);
 });
 
-test("Sankey and cumulative tiles read the same active tracker's ledger", { skip: skipTs }, (t) => {
+test("Sankey and cumulative tiles read the same active tracker's ledger", (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "sankey-tracker-"));
   const priorRoot = process.env.CAREER_OPS_ROOT;
   const priorTracker = process.env.CAREER_OPS_TRACKER;
@@ -262,7 +261,7 @@ test("Sankey and cumulative tiles read the same active tracker's ledger", { skip
   }
 });
 
-test("readStatusLog: an unreadable log throws instead of reading as empty", { skip: skipTs }, () => {
+test("readStatusLog: an unreadable log throws instead of reading as empty", () => {
   // A directory where the file should be: EISDIR, a read failure that is not ENOENT.
   withDataRoot(
     (data) => fs.mkdirSync(path.join(data, "status-log.tsv")),

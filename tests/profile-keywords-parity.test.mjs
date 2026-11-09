@@ -64,7 +64,7 @@ if (!existsSync(join(ROOT, 'web', 'src'))) {
   else fail(`drift on profile.example.yml: web=${JSON.stringify(fromExample)} core=${JSON.stringify(core(example))}`);
 
   // Shapes the two have disagreed on, or could. Each is a documented field form,
-  // not a synthetic edge case: `primary` as a list is what api/profile/route.ts
+  // not a synthetic edge case: `primary` as a list is what api/profile/route.js
   // writes; `archetypes` entries are {name, level, fit} objects.
   const cases = [
     ['primary as a list', { target_roles: { primary: ['ML Engineer', 'Inference Engineer'] } }],

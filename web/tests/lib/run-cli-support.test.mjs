@@ -514,7 +514,7 @@ test("completedReportNames filters out RESERVED sentinels", () => {
 
 test("completedReportNames uses the shared predicate, so an unnumbered file is a real report", () => {
   // Given: only a NUMBERED sentinel comes from the reservation path. This is the
-  // case where the two former copies of this convention disagreed — career-ops.ts
+  // case where the two former copies of this convention disagreed — career-ops.js
   // called it a real report, run-cli-support.mjs did not. One definition now.
   const names = completedReportNames(["notes-RESERVED.md", "030-RESERVED.md"]);
   assert.deepEqual([...names], ["notes-RESERVED.md"]);
@@ -564,7 +564,7 @@ test("the argv keeps --json and the parser reads the JSONL it turns on", () => {
 // ── the fallback stderr classifier (#1974) ──────────────────────────────────
 //
 // Only claude and codex define `stderrIsFatal`, so six of the eight entries in
-// KNOWN reach this path. It lived as an inline regex inside route.ts's stream
+// KNOWN reach this path. It lived as an inline regex inside route.js's stream
 // closure, where nothing could assert it — which is how `auth` came to match
 // inside "author" and a success message came to fail a run.
 

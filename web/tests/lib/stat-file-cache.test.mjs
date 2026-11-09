@@ -6,8 +6,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import "../helpers/web-ts-alias-loader.mjs";
 
-const { readApplications, readScanDates, readInbox } = await import("../../src/lib/career-ops.ts");
-const { assembleDedupContext } = await import("../../src/lib/core/discover.ts");
+const { readApplications, readScanDates, readInbox } = await import("../../src/lib/career-ops.js");
+const { assembleDedupContext } = await import("../../src/lib/core/discover.js");
 const { cachedFileValue } = await import("../../src/lib/stat-file-cache.mjs");
 
 const origRead = fs.readFileSync;

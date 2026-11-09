@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import "../helpers/web-ts-alias-loader.mjs";
 
-const { readLanguageConfig } = await import("../../src/lib/career-ops.ts");
+const { readLanguageConfig } = await import("../../src/lib/career-ops.js");
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 

@@ -53,7 +53,7 @@ const REAL_PROFILE = [
 ].join("\n");
 
 const DRIVER = `
-const { rememberFact } = await import("@/lib/career-ops.ts");
+const { rememberFact } = await import("@/lib/career-ops.js");
 console.log(JSON.stringify({ result: rememberFact("a fact worth keeping") }));
 `;
 
@@ -72,7 +72,7 @@ function callRememberFact(root) {
   writeFileSync(driver, DRIVER);
   const out = execFileSync(
     process.execPath,
-    ["--experimental-strip-types", "--import", LOADER, driver],
+    ["--import", LOADER, driver],
     {
       cwd: WEB,
       encoding: "utf8",

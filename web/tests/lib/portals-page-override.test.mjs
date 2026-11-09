@@ -22,9 +22,9 @@ const HARDCODED = /path\.join\(\s*root\s*,\s*["']portals\.yml["']\s*\)/;
 
 test("portals page and API routes resolve portals.yml through portalsConfigPath", () => {
   const files = [
-    "src/app/portals/page.tsx",
-    "src/app/api/portals/route.ts",
-    "src/app/api/portals/verify/route.ts",
+    "src/app/portals/page.jsx",
+    "src/app/api/portals/route.js",
+    "src/app/api/portals/verify/route.js",
   ];
   for (const rel of files) {
     const src = readFileSync(join(webRoot, rel), "utf8");
@@ -33,15 +33,12 @@ test("portals page and API routes resolve portals.yml through portalsConfigPath"
   }
 });
 
-const skipTs = !process.features?.typescript && "this Node cannot import career-ops.ts (no type stripping)";
-const mods = skipTs
-  ? {}
-  : {
-      ...(await import("@/lib/career-ops")),
-      ...(await import("@/lib/portals-config.mjs")),
-    };
+const mods = {
+  ...(await import("@/lib/career-ops")),
+  ...(await import("@/lib/portals-config.mjs")),
+};
 
-test("watched companies load from CAREER_OPS_PORTALS when set", { skip: skipTs }, () => {
+test("watched companies load from CAREER_OPS_PORTALS when set", () => {
   const root = mkdtempSync(join(tmpdir(), "co-portals-page-"));
   const prevRoot = process.env.CAREER_OPS_ROOT;
   const prevPortals = process.env.CAREER_OPS_PORTALS;

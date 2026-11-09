@@ -17015,9 +17015,9 @@ try {
   // SKIP (not a funnel stage), so it's excluded there.
   const stateLabels = [...statesSrc.matchAll(/^\s+label:\s*"?([A-Za-z]+)"?\s*$/gm)].map((m) => m[1]);
   const webStatusLists = [
-    { file: 'web/src/lib/format.ts', re: /CANONICAL_STATES\s*=\s*\[([\s\S]*?)\]/, upper: false, exclude: [] },
-    { file: 'web/src/app/actions/registry.ts', re: /CANON_STATUS\s*=\s*\[([\s\S]*?)\]/, upper: false, exclude: [] },
-    { file: 'web/src/app/actions/registry.ts', re: /TAB_VALUES\s*=\s*\[([\s\S]*?)\]/, upper: true, exclude: [] },
+    { file: 'web/src/lib/format.js', re: /CANONICAL_STATES\s*=\s*\[([\s\S]*?)\]/, upper: false, exclude: [] },
+    { file: 'web/src/app/actions/registry.js', re: /CANON_STATUS\s*=\s*\[([\s\S]*?)\]/, upper: false, exclude: [] },
+    { file: 'web/src/app/actions/registry.js', re: /TAB_VALUES\s*=\s*\[([\s\S]*?)\]/, upper: true, exclude: [] },
     { file: 'web/src/lib/pipeline-navigation.mjs', re: /PIPELINE_TABS\s*=[^[]*\[([\s\S]*?)\]/, upper: true, exclude: [] },
     // Analytics now derives its funnel from canonStatus in analytics-metrics;
     // it no longer owns a hardcoded status-list copy to keep in sync.
@@ -17056,7 +17056,7 @@ try {
     // The shape that must never pass is a literal table that is INCOMPLETE.
     // That is the only one that fails silently: a state missing from the
     // fallback reads exactly like a state the product does not have.
-    const aclPath = join(ROOT, 'web', 'src', 'lib', 'core', 'states.ts');
+    const aclPath = join(ROOT, 'web', 'src', 'lib', 'core', 'states.js');
     if (existsSync(aclPath)) {
       const aclSrc = readFileSync(aclPath, 'utf-8');
       const literal = aclSrc.match(/const FALLBACK[^=]*=\s*\[([\s\S]*?)\n\];/)?.[1];
@@ -17111,7 +17111,7 @@ try {
   // core (#2369). Two halves: the core must still EMIT the pure defaults that
   // the web's /api/followups/cadence reads, and the web must not quietly
   // reintroduce a local table (a fallback copy drifts exactly like the original
-  // did — states.ts FALLBACK, #2282).
+  // did — states.js FALLBACK, #2282).
   {
     // Assert the EMITTED payload, not just the source text: a regex over the
     // source proves the literal is present, not that the contract the web
@@ -17176,19 +17176,19 @@ try {
     } else {
       fail(`the empty-tracker error was lost, so callers that branch on result.error now fall through (#4005): ${JSON.stringify(emptyEmitted)}`);
     }
-    const webFollowups = join(ROOT, 'web', 'src', 'lib', 'followups.ts');
+    const webFollowups = join(ROOT, 'web', 'src', 'lib', 'followups.js');
     if (existsSync(webFollowups)) {
       const webSrc = readFileSync(webFollowups, 'utf-8');
       if (!/export const CADENCE_DEFAULTS/.test(webSrc)) {
-        pass('web/src/lib/followups.ts keeps no hand-copied cadence table (#2369)');
+        pass('web/src/lib/followups.js keeps no hand-copied cadence table (#2369)');
       } else {
-        fail('CADENCE_DEFAULTS was reintroduced in web/src/lib/followups.ts — derive from the core instead (#2369)');
+        fail('CADENCE_DEFAULTS was reintroduced in web/src/lib/followups.js — derive from the core instead (#2369)');
       }
     }
   }
 
   // 55.3d the web onboarding banner's prereq list must match doctor.mjs.
-  // doctorState() in web/src/lib/career-ops.ts hand-copies USER_LAYER_PREREQS
+  // doctorState() in web/src/lib/career-ops.js hand-copies USER_LAYER_PREREQS
   // as a deliberate fast-path (server components can't execFile doctor per
   // render) — if the core gains a fifth prereq, the banner silently stops
   // asking for it and the user believes they're configured. Same mechanism as
@@ -17197,7 +17197,7 @@ try {
     const corePrereqBlock = readFileSync(join(ROOT, 'doctor.mjs'), 'utf-8')
       .match(/const USER_LAYER_PREREQS = \[([\s\S]*?)\n\];/)?.[1] ?? '';
     const corePrereqs = [...corePrereqBlock.matchAll(/path:\s*'([^']+)'/g)].map((m) => m[1]);
-    const webDoctorPath = join(ROOT, 'web', 'src', 'lib', 'career-ops.ts');
+    const webDoctorPath = join(ROOT, 'web', 'src', 'lib', 'career-ops.js');
     if (corePrereqs.length > 0 && existsSync(webDoctorPath)) {
       const webPrereqBlock = readFileSync(webDoctorPath, 'utf-8')
         .match(/const prereqs[^=]*=\s*\[([\s\S]*?)\n\s*\];/)?.[1] ?? '';
@@ -17333,18 +17333,18 @@ try {
   }
 
   // 55.5 cross-check: the web parser still speaks the same column names
-  const webParserPath = join(ROOT, 'web', 'src', 'lib', 'career-ops.ts');
+  const webParserPath = join(ROOT, 'web', 'src', 'lib', 'career-ops.js');
   if (existsSync(webParserPath)) {
     const webSrc = readFileSync(webParserPath, 'utf-8');
     const ESSENTIAL_COLS = ['Company', 'Role', 'Score', 'Status'];
     const missingCols = ESSENTIAL_COLS.filter((c) => !webSrc.toLowerCase().includes(c.toLowerCase()));
     if (missingCols.length === 0) {
-      pass('web/src/lib/career-ops.ts still references the essential tracker columns');
+      pass('web/src/lib/career-ops.js still references the essential tracker columns');
     } else {
       fail(`web parser no longer references column(s): ${missingCols.join(', ')} — core and web drifted`);
     }
   } else {
-    warn('web/src/lib/career-ops.ts not found — web layer moved? update contract freeze section');
+    warn('web/src/lib/career-ops.js not found — web layer moved? update contract freeze section');
   }
 
   // 55.6 pdf mode must never hand the agent write access (#2185).
@@ -17354,16 +17354,16 @@ try {
   // (both enter that agent's context) could redirect it at cv.md.
   //
   // Asserted on VALUES — the built argv and the built prompt. FIVE source-text
-  // versions of this guard were defeated by rewriting route.ts around them (see
+  // versions of this guard were defeated by rewriting route.js around them (see
   // web/src/lib/claude-invocation.mjs's header). The one structural rule left is
-  // that route.ts may not spell a tool flag itself, which is what stops an inline
+  // that route.js may not spell a tool flag itself, which is what stops an inline
   // argv from hiding beside a legitimate claudeCliArgs() call.
   //
   // In the REQUIRED suite on purpose: web-ci.yml is informative-only, so asserting
   // this only there would gate nothing. Importing is safe — these are
   // dependency-free ESM modules and the root suite runs on Node >= 22.13.
   const webLib = join(ROOT, 'web', 'src', 'lib');
-  const runRoutePath = join(ROOT, 'web', 'src', 'app', 'api', 'run', 'route.ts');
+  const runRoutePath = join(ROOT, 'web', 'src', 'app', 'api', 'run', 'route.js');
   if (!existsSync(webLib)) {
     // Expected for a data-only install: web/ is in no SYSTEM_PATHS entry.
     warn('web/ not present in this checkout — skipping the pdf write-scope freeze (#2185)');
@@ -17377,7 +17377,7 @@ try {
       'report-envelope.mjs': join(webLib, 'report-envelope.mjs'),
       'report-persist.mjs': join(webLib, 'report-persist.mjs'),
       'run-prompts.mjs': join(webLib, 'run-prompts.mjs'),
-      'api/run/route.ts': runRoutePath,
+      'api/run/route.js': runRoutePath,
     };
     const missing = Object.entries(required).filter(([, f]) => !existsSync(f)).map(([name]) => name);
     if (missing.length > 0) {
@@ -17432,7 +17432,7 @@ try {
         if (existsSync(join(ROOT, 'web', 'tests', 'lib'))) {
           fail('web/tests/lib contains no *.test.mjs — the #2185 unit suites are not being gated');
         }
-      } else if (run(NODE, ['--experimental-strip-types', '--test', ...webUnits], { timeout: 180000 }) !== null) {
+      } else if (run(NODE, ['--test', ...webUnits], { timeout: 180000 }) !== null) {
         pass('web pdf write-scope unit suites pass (#2185)');
       } else {
         // The signal distinguishes a timeout/kill from an assertion failure —
@@ -17446,7 +17446,7 @@ try {
         // which of the hundred broke. A flake that only reproduces on a slow
         // runner is then undiagnosable by construction, which is the half of
         // #4017 that outlived its own test.
-        fail(`web pdf write-scope unit suites failed${killed ? ` (killed: ${killed})` : ''} (run: node --experimental-strip-types --test ${webUnits.join(' ')})${formatRunFailure()}`);
+        fail(`web pdf write-scope unit suites failed${killed ? ` (killed: ${killed})` : ''} (run: node --test ${webUnits.join(' ')})${formatRunFailure()}`);
       }
 
       // Parity: everything web/package.json would run must be something we DO run.
@@ -17661,7 +17661,7 @@ try {
   // The browser cannot reach the user's checkout, so web/src/lib/core/
   // normalize-text-key.mjs is a COPY by necessity, declared as such. A conscious
   // copy without an assertion is exactly the failure this repo has now hit five
-  // times (states.ts, CADENCE_DEFAULTS, doctor prereqs, the #2590 cache, and the
+  // times (states.js, CADENCE_DEFAULTS, doctor prereqs, the #2590 cache, and the
   // three divergent company norms of #2666 itself).
   //
   // Compare CORE vs MIRROR, not core vs the derived path: the derived path
@@ -17776,9 +17776,9 @@ try {
   // slugs, a regex boundary class — all legitimate), and a check that shouts at
   // correct code gets silenced. Here the same expression would be the bug.
   const keySurfaces = [
-    { file: join(ROOT, 'web', 'src', 'app', 'api', 'whats-new', 'route.ts'), needs: 'getNormalizeTextKey', how: 'derive from the live core' },
-    { file: join(ROOT, 'web', 'src', 'components', 'explore', 'explorer-view.tsx'), needs: 'normalize-text-key', how: 'import the shared mirror (client cannot reach the core)' },
-    { file: join(ROOT, 'web', 'src', 'app', 'actions', 'registry.ts'), needs: 'normalize-text-key', how: 'import the shared mirror' },
+    { file: join(ROOT, 'web', 'src', 'app', 'api', 'whats-new', 'route.js'), needs: 'getNormalizeTextKey', how: 'derive from the live core' },
+    { file: join(ROOT, 'web', 'src', 'components', 'explore', 'explorer-view.jsx'), needs: 'normalize-text-key', how: 'import the shared mirror (client cannot reach the core)' },
+    { file: join(ROOT, 'web', 'src', 'app', 'actions', 'registry.js'), needs: 'normalize-text-key', how: 'import the shared mirror' },
   ];
   if (existsSync(join(ROOT, 'web', 'src'))) {
     for (const { file, needs, how } of keySurfaces) {
@@ -17791,7 +17791,7 @@ try {
         // Comment lines are stripped first: the honest fix for this bug ships a
         // comment WARNING against the pattern ("never [^a-z0-9]"), and flagging
         // that would punish the file for documenting its own trap. Measured:
-        // this exact false positive fired on explorer-view.tsx the first time
+        // this exact false positive fired on explorer-view.jsx the first time
         // this check ran. Line-level is proportionate here — the scope is three
         // known files, and a full JS parse to catch a block comment would be
         // more machinery than the risk deserves.

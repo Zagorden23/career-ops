@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 const src = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "../../src/components/home/decision-card.tsx"),
+  join(dirname(fileURLToPath(import.meta.url)), "../../src/components/home/decision-card.jsx"),
   "utf8",
 );
 

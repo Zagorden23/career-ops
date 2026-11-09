@@ -1,13 +1,13 @@
 // Every routable page has a loading state beside it.
 //
-// #4338 added one per route. Next guarantees what a loading.tsx DOES; what
+// #4338 added one per route. Next guarantees what a loading.jsx DOES; what
 // nothing guarantees is that the next route added gets one — and the failure is
 // silent, because a route without a loading state simply goes back to leaving
 // the previous page on screen with no feedback.
 //
 // Deliberately asserts only EXISTENCE and that the file renders something.
 // It does not require a particular component, class or prop: #4338 composes
-// page-loading-skeletons.tsx and a `Skeleton` primitive, and a future route may
+// page-loading-skeletons.jsx and a `Skeleton` primitive, and a future route may
 // reasonably do something else. A test that mandates one spelling fails on a
 // correct implementation, which teaches the next person to edit the assertion
 // rather than read it.
@@ -26,10 +26,10 @@ const WEB = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const APP = join(WEB, "src", "app");
 
 /**
- * Every directory under src/app that holds a page.tsx.
+ * Every directory under src/app that holds a page.jsx.
  *
  * A second checkout parked under src/app is not this app's routes: walkTree
- * does not descend into one, so the walk cannot demand a loading.tsx for
+ * does not descend into one, so the walk cannot demand a loading.jsx for
  * someone else's pages and fail naming files that are correct on the branch
  * under test.
  */
@@ -38,7 +38,7 @@ function routeDirs(dir) {
     // route handlers, not pages
     skip: (entry) => entry.isDirectory() && entry.name === "api",
   })
-    .filter((file) => basename(file) === "page.tsx")
+    .filter((file) => basename(file) === "page.jsx")
     .map((file) => dirname(file));
 }
 
@@ -75,7 +75,7 @@ test("every page has a loading state beside it", () => {
   const missing = routes
     .filter((d) => {
       try {
-        statSync(join(d, "loading.tsx"));
+        statSync(join(d, "loading.jsx"));
         return false;
       } catch {
         return true;
@@ -86,7 +86,7 @@ test("every page has a loading state beside it", () => {
   assert.deepEqual(
     missing,
     [],
-    "these routes have a page.tsx but no loading.tsx, so navigating to them leaves " +
+    "these routes have a page.jsx but no loading.jsx, so navigating to them leaves " +
       `the previous page on screen with no feedback:\n    ${missing.join("\n    ")}`,
   );
 });
@@ -106,7 +106,7 @@ test("every loading state exports a component", () => {
   // assertion instead of reading it.
   const empty = [];
   for (const d of routes) {
-    const file = join(d, "loading.tsx");
+    const file = join(d, "loading.jsx");
     let src;
     try {
       src = readFileSync(file, "utf8");
@@ -116,7 +116,7 @@ test("every loading state exports a component", () => {
     const rel = relative(APP, d).split(sep).join("/") || "/";
     // Comments and string literals are blanked first. `/export\s+default/` over
     // raw source matches the phrase in a comment explaining the file, or inside
-    // a string — so a loading.tsx that only TALKS about a default export would
+    // a string — so a loading.jsx that only TALKS about a default export would
     // have passed. Same reasoning as the help-flag ratchet: the match has to
     // come from code.
     if (!/export\s+default/.test(codeOnly(src))) empty.push(`${rel}: no default export`);
@@ -125,14 +125,14 @@ test("every loading state exports a component", () => {
 });
 
 test("a detail route does not inherit its parent's list skeleton", () => {
-  // A loading.tsx covers its segment AND everything nested under it, so without
+  // A loading.jsx covers its segment AND everything nested under it, so without
   // its own, /pipeline/[id] flashes a table skeleton before rendering one report
   // — a skeleton that lies about the shape of what is coming is worse than a
   // plain spinner. Named explicitly so deleting one fails with the reason.
   for (const rel of [join("pipeline", "[id]"), join("jobs", "[id]")]) {
     assert.doesNotThrow(
-      () => statSync(join(APP, rel, "loading.tsx")),
-      `${rel} must have its own loading.tsx — without it the route inherits the ` +
+      () => statSync(join(APP, rel, "loading.jsx")),
+      `${rel} must have its own loading.jsx — without it the route inherits the ` +
         "list skeleton from its parent segment",
     );
   }

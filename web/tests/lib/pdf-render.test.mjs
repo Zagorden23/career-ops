@@ -707,7 +707,7 @@ test("pdfRunOutcome: a no-output verdict outranks an otherwise healthy envelope"
 
 test("writeCvHtml: a shorter re-render leaves no trailing bytes", () => {
   // Given the same report rendered twice, the second CV shorter than the first.
-  // route.ts clears no stale scratch file because this function is documented to
+  // route.js clears no stale scratch file because this function is documented to
   // rewrite the HTML before any render — a claim that rests entirely on
   // writeFileSync truncating. Switch to an append flag, or to a write-then-rename
   // helper, and every other test here stays green while the renderer reads the tail

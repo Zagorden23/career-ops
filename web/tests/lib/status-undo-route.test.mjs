@@ -46,7 +46,7 @@ function seed(status, ledger) {
 const rowStatus = () => readFileSync(tracker, "utf8").split("\n").find((l) => l.startsWith("| 7 |")).split("|")[6].trim();
 
 async function post(body) {
-  const { POST } = await import("@/app/api/status/route.ts");
+  const { POST } = await import("@/app/api/status/route.js");
   const res = await POST(new Request("http://127.0.0.1/api/status", { method: "POST", body: JSON.stringify(body) }));
   return { status: res.status, body: await res.json() };
 }

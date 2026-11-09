@@ -37,7 +37,7 @@ test('live scanner evidence survives JSON for review and repeated Inbox admissio
   assert.equal(buildWorkplacePolicy(policy)(blocked.location, blocked.title, blocked).eligible, false);
 });
 test('actual Add-to-Inbox adapter rejects a mixed selection before either writer', () => {
-  const adapter = pathToFileURL(path.join(ROOT, 'web/src/lib/core/pipeline.ts')).href;
+  const adapter = pathToFileURL(path.join(ROOT, 'web/src/lib/core/pipeline.js')).href;
   const loader = pathToFileURL(path.join(ROOT, 'web/tests/helpers/web-ts-alias-loader.mjs')).href;
   const code = `
     const { addOffersToPipeline } = await import(${JSON.stringify(adapter)});
@@ -54,7 +54,7 @@ test('actual Add-to-Inbox adapter rejects a mixed selection before either writer
     const env = { ...process.env };
     for (const key of Object.keys(env)) if (key.startsWith('CAREER_OPS_')) delete env[key];
     Object.assign(env, { CAREER_OPS_ROOT: temp, CAREER_OPS_CODE_ROOT: ROOT });
-    const run = offers => spawnSync(process.execPath, ['--experimental-strip-types', '--import', loader, '--input-type=module', '-e', code], { cwd: temp, input: JSON.stringify(offers), env, encoding: 'utf8', timeout: 15_000 });
+    const run = offers => spawnSync(process.execPath, ['--import', loader, '--input-type=module', '-e', code], { cwd: temp, input: JSON.stringify(offers), env, encoding: 'utf8', timeout: 15_000 });
     const result = run(input);
     assert.equal(result.status, 0, describeSpawn(result, 'Add to Inbox rejects a mixed selection'));
     const outcome = JSON.parse(result.stdout);
@@ -106,7 +106,7 @@ test('Discover retains saved policy and geography evidence with a separate data 
       console.log(JSON.stringify({ offers: [offer], companiesScanned: 1, companiesAvailable: 1, capHit: false }));
     `);
     const loader = pathToFileURL(path.join(ROOT, 'web/tests/helpers/web-ts-alias-loader.mjs')).href;
-    const source = pathToFileURL(path.join(ROOT, 'web/src/lib/core/scan.ts')).href;
+    const source = pathToFileURL(path.join(ROOT, 'web/src/lib/core/scan.js')).href;
     const env = { ...process.env };
     for (const key of Object.keys(env)) if (key.startsWith('CAREER_OPS_')) delete env[key];
     Object.assign(env, { CAREER_OPS_ROOT: data, CAREER_OPS_CODE_ROOT: engine });
@@ -117,7 +117,7 @@ test('Discover retains saved policy and geography evidence with a separate data 
       const offers = await runDiscovery(filters, event => events.push(event));
       console.log(JSON.stringify({ offers, events }));
     `;
-    const result = spawnSync(process.execPath, ['--experimental-strip-types', '--import', loader, '--input-type=module', '-e', code], { cwd: engine, env, encoding: 'utf8', timeout: 15_000 });
+    const result = spawnSync(process.execPath, ['--import', loader, '--input-type=module', '-e', code], { cwd: engine, env, encoding: 'utf8', timeout: 15_000 });
     assert.equal(result.status, 0, describeSpawn(result, 'Discover preserves policy and evidence'));
     const outcome = JSON.parse(result.stdout);
     assert.equal(outcome.events.some(e => e.kind === 'error'), false, result.stdout);
@@ -127,7 +127,7 @@ test('Discover retains saved policy and geography evidence with a separate data 
     assert.equal(fs.readFileSync(path.join(data, 'portals.yml'), 'utf8'), portals, 'saved config was not rewritten');
     for (const text of ['- location_filter: {}\n', 'location_filter: { workplace_policy: null }\n']) {
       fs.writeFileSync(path.join(data, 'portals.yml'), text);
-      const rejected = spawnSync(process.execPath, ['--experimental-strip-types', '--import', loader, '--input-type=module', '-e', code], { cwd: engine, env, encoding: 'utf8', timeout: 15_000 });
+      const rejected = spawnSync(process.execPath, ['--import', loader, '--input-type=module', '-e', code], { cwd: engine, env, encoding: 'utf8', timeout: 15_000 });
       assert.ok(exitedNonZero(rejected), describeSpawn(rejected, 'Discover must reject malformed saved geography config'));
       assert.match(rejected.stderr, /mapping|must be an object/);
       assert.equal(fs.readFileSync(path.join(data, 'portals.yml'), 'utf8'), text);

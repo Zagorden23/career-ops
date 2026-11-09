@@ -7,7 +7,7 @@ import { test } from "node:test";
 const here = dirname(fileURLToPath(import.meta.url));
 
 test("the checklist Applied button asks before it writes", () => {
-  const src = readFileSync(join(here, "../../src/components/apply-checklist.tsx"), "utf8");
+  const src = readFileSync(join(here, "../../src/components/apply-checklist.jsx"), "utf8");
   const ask = src.indexOf('appliedWriteAllowed({ status: "Applied", confirmed: false })');
   const yes = src.indexOf('appliedWriteAllowed({ status: "Applied", confirmed: true })');
   const write = src.indexOf('saveStatus(trackerNum, status, "Applied")');
@@ -24,7 +24,7 @@ test("the checklist Applied button asks before it writes", () => {
 });
 
 test("Today's decision card Applied confirm takes focus and has an alert role", () => {
-  const src = readFileSync(join(here, "../../src/components/home/decision-card.tsx"), "utf8");
+  const src = readFileSync(join(here, "../../src/components/home/decision-card.jsx"), "utf8");
   const askAt = src.indexOf("{askApplied && (");
   const askEnd = src.indexOf("{error &&", askAt);
   assert.ok(askAt !== -1 && askEnd > askAt);
@@ -35,7 +35,7 @@ test("Today's decision card Applied confirm takes focus and has an alert role", 
 });
 
 test("pipeline Applied from a key or the bulk button asks before it writes", () => {
-  const src = readFileSync(join(here, "../../src/components/pipeline-view.tsx"), "utf8");
+  const src = readFileSync(join(here, "../../src/components/pipeline-view.jsx"), "utf8");
   const gate = src.indexOf("appliedWriteAllowed({ status, confirmed })");
   const write = src.indexOf("void commitStatus(rows, status)");
   assert.ok(gate !== -1 && write !== -1 && gate < write);

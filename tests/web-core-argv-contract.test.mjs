@@ -40,34 +40,34 @@ console.log('\nweb → core argv contract');
 //                  bottom stays complete.
 const CALL_SITES = [
   {
-    source: 'web/src/app/api/followups/route.ts',
+    source: 'web/src/app/api/followups/route.js',
     script: 'followup-cadence.mjs',
     args: ['--json'],
     probe: 'run',
   },
   {
-    source: 'web/src/app/api/followups/cadence/route.ts',
+    source: 'web/src/app/api/followups/cadence/route.js',
     script: 'followup-cadence.mjs',
     args: ['--json'],
     probe: 'run',
   },
   {
-    source: 'web/src/app/api/doctor/route.ts',
+    source: 'web/src/app/api/doctor/route.js',
     script: 'doctor.mjs',
     args: ['--json'],
     probe: 'run',
   },
   {
     // Before the set-status probe, which moves row 1 off Applied.
-    source: 'web/src/lib/core-cli.ts',
-    argvSource: 'web/src/app/api/followups/seed/route.ts',
+    source: 'web/src/lib/core-cli.js',
+    argvSource: 'web/src/app/api/followups/seed/route.js',
     script: 'followup-seed.mjs',
     args: ['1', '--json'],
     probe: 'run',
   },
   {
-    source: 'web/src/lib/core-cli.ts',
-    argvSource: 'web/src/app/api/status/route.ts',
+    source: 'web/src/lib/core-cli.js',
+    argvSource: 'web/src/app/api/status/route.js',
     script: 'set-status.mjs',
     // The route builds ['--row', row, canon, '--source', 'web', '--detach-jd-archive', '--json'];
     // row 1 and Responded are the fixture tracker's row and a canonical state.
@@ -77,20 +77,20 @@ const CALL_SITES = [
   {
     // The same route's {n, undo: true} shape. It takes back the Responded
     // write above, so row 1 is Applied again for the probes below.
-    source: 'web/src/lib/core-cli.ts',
-    argvSource: 'web/src/app/api/status/route.ts',
+    source: 'web/src/lib/core-cli.js',
+    argvSource: 'web/src/app/api/status/route.js',
     script: 'set-status.mjs',
     args: ['--row', '1', '--undo', '--source', 'web', '--detach-jd-archive', '--json'],
     probe: 'run',
   },
   {
-    source: 'web/src/app/api/portals/verify/route.ts',
+    source: 'web/src/app/api/portals/verify/route.js',
     script: 'verify-portals.mjs',
     args: [],
     probe: 'run',
   },
   {
-    source: 'web/src/app/api/tracker/delete/route.ts',
+    source: 'web/src/app/api/tracker/delete/route.js',
     script: 'tracker.mjs',
     // --dry-run is conditional in the route (added when the caller asks for a
     // preview); passing it keeps the probe off the fixture tracker.
@@ -98,14 +98,14 @@ const CALL_SITES = [
     probe: 'run',
   },
   {
-    source: 'web/src/lib/core/scan.ts',
+    source: 'web/src/lib/core/scan.js',
     script: 'scan-ats-full.mjs',
     // The values are the route's own defaults; only the flag names matter here.
     args: ['--dry-run', '--since', '7', '--ats', 'greenhouse', '--limit', '150', '--json'],
     probe: 'flags-only',
   },
   {
-    source: 'web/src/app/api/quiet-companies/route.ts',
+    source: 'web/src/app/api/quiet-companies/route.js',
     script: 'rejection-latency.mjs',
     // The route parses stdout, so the payload is the contract, not just exit 0.
     expectJson: true,
@@ -116,7 +116,7 @@ const CALL_SITES = [
     probe: 'run',
   },
   {
-    source: 'web/src/app/api/stats/route.ts',
+    source: 'web/src/app/api/stats/route.js',
     script: 'stats.mjs',
     // NO FLAGS. stats.mjs prints JSON by default and rejects `--json` outright
     // ("unrecognized flag(s): --json"), unlike every other route here — which is
@@ -126,7 +126,7 @@ const CALL_SITES = [
     probe: 'json-any-exit',
   },
   {
-    source: 'web/src/app/api/patterns/route.ts',
+    source: 'web/src/app/api/patterns/route.js',
     script: 'analyze-patterns.mjs',
     // Exits 1 on this one-row fixture, by design: it is under its minimum
     // sample and says so in a JSON payload the route renders. The contract is
@@ -135,7 +135,7 @@ const CALL_SITES = [
     probe: 'json-any-exit',
   },
   {
-    source: 'web/src/app/api/keyword-match/route.ts',
+    source: 'web/src/app/api/keyword-match/route.js',
     script: 'keyword-match.mjs',
     // {{report}} is replaced with the fixture report below. This script takes a
     // FILE as its first argument, so unlike every other site here the argv is
@@ -145,7 +145,7 @@ const CALL_SITES = [
     probe: 'run',
   },
   {
-    source: 'web/src/app/api/upskill/route.ts',
+    source: 'web/src/app/api/upskill/route.js',
     script: 'upskill.mjs',
     // No flags: upskill.mjs prints JSON by default and rejects a --json flag,
     // the same convention stats.mjs and company-history.mjs follow while the
@@ -154,7 +154,7 @@ const CALL_SITES = [
     probe: 'run',
   },
   {
-    source: 'web/src/app/api/company-history/route.ts',
+    source: 'web/src/app/api/company-history/route.js',
     script: 'company-history.mjs',
     // The fixture tracker's own company, so the probe exercises a real lookup
     // rather than the not-found fallback.
@@ -162,7 +162,7 @@ const CALL_SITES = [
     probe: 'run',
   },
   {
-    source: 'web/src/app/api/linkedin-import/route.ts',
+    source: 'web/src/app/api/linkedin-import/route.js',
     script: 'linkedin-import.mjs',
     // The route pipes the pasted alert on stdin. The probe sends none; the
     // route only needs the JSON payload the paste box shows.
@@ -170,7 +170,7 @@ const CALL_SITES = [
     probe: 'json-any-exit',
   },
   {
-    source: 'web/src/lib/core/pipeline.ts',
+    source: 'web/src/lib/core/pipeline.js',
     script: null,
     args: [],
     probe: 'none',
@@ -234,7 +234,7 @@ export function verifyWebStaticSources({ root = ROOT, reportPass = pass, reportF
 
   // Every web source that spawns a core script must be listed. A new route is
   // a new argv nobody has put to the script.
-  const spawners = walkFiles(webSrcRoot, /\.(ts|tsx|mjs)$/)
+  const spawners = walkFiles(webSrcRoot, /\.(mjs|jsx?)$/)
     .map((f) => relative(root, f).split(sep).join('/'))
     .filter((rel) => {
       const src = readFileSync(join(root, rel), 'utf-8');

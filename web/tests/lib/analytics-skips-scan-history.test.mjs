@@ -16,15 +16,14 @@ const here = dirname(fileURLToPath(import.meta.url));
 const webRoot = join(here, "../..");
 
 test("the analytics page does not go through pipelineSummary()", () => {
-  const src = readFileSync(join(webRoot, "src/app/analytics/page.tsx"), "utf8");
-  assert.doesNotMatch(src, /pipelineSummary\s*\(/, "analytics/page.tsx calls pipelineSummary(), which parses scan-history");
+  const src = readFileSync(join(webRoot, "src/app/analytics/page.jsx"), "utf8");
+  assert.doesNotMatch(src, /pipelineSummary\s*\(/, "analytics/page.jsx calls pipelineSummary(), which parses scan-history");
   assert.match(src, /readApplications\s*\(/);
 });
 
-const skipTs = !process.features?.typescript && "this Node cannot import career-ops.ts (no type stripping)";
-const mods = skipTs ? {} : await import("@/lib/career-ops");
+const mods = await import("@/lib/career-ops");
 
-test("readApplications() leaves scan-history.tsv unread; pipelineSummary() reads it", { skip: skipTs }, () => {
+test("readApplications() leaves scan-history.tsv unread; pipelineSummary() reads it", () => {
   const root = mkdtempSync(join(tmpdir(), "co-analytics-scan-history-"));
   const prevRoot = process.env.CAREER_OPS_ROOT;
   const original = fs.readFileSync;

@@ -28,11 +28,11 @@ import { join, dirname, basename } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { register } from "node:module";
 
-// cv.ts reaches web/src/lib/career-ops through the `@/` path alias, and bare
+// cv.js reaches web/src/lib/career-ops through the `@/` path alias, and bare
 // `node --test` has no webpack in the loop to resolve it. Same inline loader
 // apply-cv-resolver.test.mjs registers, for the same reason.
 const WEB_SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src");
-const ALIAS_EXTS = [".ts", ".tsx", ".mjs", ".js", ".mts"];
+const ALIAS_EXTS = [".js", ".jsx", ".mjs"];
 const loaderSrc = [
   "import { existsSync } from 'node:fs';",
   "import path from 'node:path';",
@@ -56,7 +56,7 @@ const loaderSrc = [
 ].join("\n");
 register("data:text/javascript," + encodeURIComponent(loaderSrc), pathToFileURL(WEB_SRC + "/"));
 
-const { resolveTailoredCv, resolveSessionCv } = await import("../../src/lib/apply/cv.ts");
+const { resolveTailoredCv, resolveSessionCv } = await import("../../src/lib/apply/cv.js");
 const { buildAnswerPrompt } = await import("../../src/lib/apply/answer-prompt.mjs");
 const { applyCvSource } = await import("../../src/lib/apply/cv-source.mjs");
 

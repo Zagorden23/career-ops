@@ -20,7 +20,7 @@ test("a row with a report offers tailor and the checklist", () => {
 
 test("the report page shows the verdict before the action row, and delete stays after it", () => {
   const src = readFileSync(
-    join(dirname(fileURLToPath(import.meta.url)), "../../src/components/report-view.tsx"),
+    join(dirname(fileURLToPath(import.meta.url)), "../../src/components/report-view.jsx"),
     "utf8",
   );
   const verdict = src.indexOf(">Verdict<");

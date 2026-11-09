@@ -11,8 +11,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import "../helpers/web-ts-alias-loader.mjs";
 
-const skipTs = !process.features?.typescript && "this Node cannot import career-ops.ts (no type stripping)";
-const { doctorState } = skipTs ? {} : await import("@/lib/career-ops");
+const { doctorState } = await import("@/lib/career-ops");
 
 function makeRoot() {
   const root = mkdtempSync(join(tmpdir(), "co-doctor-portals-"));
@@ -46,7 +45,7 @@ function withEnv(root, portals, fn) {
   }
 }
 
-test("doctorState treats CAREER_OPS_PORTALS as the portals file", { skip: skipTs }, () => {
+test("doctorState treats CAREER_OPS_PORTALS as the portals file", () => {
   const root = makeRoot();
   const alt = join(root, "alt-portals.yml");
   writeFileSync(alt, "tracked_companies: []\n");
@@ -56,7 +55,7 @@ test("doctorState treats CAREER_OPS_PORTALS as the portals file", { skip: skipTs
   assert.equal(state.phase, "established");
 });
 
-test("doctorState still reports portals.yml missing when neither the override nor the default file exists", { skip: skipTs }, () => {
+test("doctorState still reports portals.yml missing when neither the override nor the default file exists", () => {
   const root = makeRoot();
   const state = withEnv(root, null, () => doctorState({ applications: [], inbox: [] }));
   assert.deepEqual(state.missing, ["portals.yml"]);

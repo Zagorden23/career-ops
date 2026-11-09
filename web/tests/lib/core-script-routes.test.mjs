@@ -79,7 +79,7 @@ async function call(handler, req) {
   return { body: await res.json(), launches: [...launches] };
 }
 
-const route = (p) => import(`@/app/api/${p}/route.ts`);
+const route = (p) => import(`@/app/api/${p}/route.js`);
 
 // ---------------------------------------------------------------------------
 // Launch: the very Node serving the page, never a console it could inherit.
@@ -168,7 +168,7 @@ const DRIVEN_ROUTES = [
 
 test("census: the routes driven above are every route that calls execFile", () => {
   const apiRoot = fileURLToPath(new URL("../../src/app/api", import.meta.url));
-  const found = listTree(apiRoot, { match: /route\.ts$/ })
+  const found = listTree(apiRoot, { match: /route\.js$/ })
     .filter((f) => /\bexecFile\(/.test(readFileSync(f, "utf8")))
     .map((f) => relative(apiRoot, dirname(f)).split(sep).join("/"));
   // Premise: the walk sees the route tree at all

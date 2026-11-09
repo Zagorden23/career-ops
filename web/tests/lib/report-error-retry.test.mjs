@@ -10,12 +10,12 @@ import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 
 const source = readFileSync(
-  fileURLToPath(new URL("../../src/app/pipeline/[id]/error.tsx", import.meta.url)),
+  fileURLToPath(new URL("../../src/app/pipeline/[id]/error.jsx", import.meta.url)),
   "utf8",
 );
 
 test("Try again calls the Next.js retry prop", () => {
-  assert.match(source, /retry:\s*\(\)\s*=>\s*void/);
+  assert.match(source, /export default function \w+\(\{[^}]*\bretry\b[^}]*\}\)/, "the boundary must take Next's retry prop");
   assert.match(source, /onClick=\{\(\)\s*=>\s*retry\(\)\}/);
   assert.doesNotMatch(source, /onClick=\{\(\)\s*=>\s*reset\(\)\}/);
 });

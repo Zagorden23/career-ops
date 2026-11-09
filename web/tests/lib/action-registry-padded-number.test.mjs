@@ -3,7 +3,7 @@ import test from "node:test";
 
 import "../helpers/web-ts-alias-loader.mjs";
 
-const { dispatch } = await import("../../src/app/actions/registry.ts");
+const { dispatch } = await import("../../src/app/actions/registry.js");
 
 function context() {
   const started = [];

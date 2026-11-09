@@ -5,7 +5,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { exploreSnapshot } from "../../src/lib/explore-snapshot.mjs";
 
-const page = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../src/app/explore/page.tsx"), "utf8");
+const page = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../src/app/explore/page.jsx"), "utf8");
 
 test("the explore page builds its snapshot with exploreSnapshot()", () => {
   assert.match(page, /exploreSnapshot\s*\(/);

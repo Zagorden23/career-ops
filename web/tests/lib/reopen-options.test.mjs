@@ -30,7 +30,7 @@ test("a different form does not keep the previous tracker row", () => {
 });
 
 test("a failed read offers the checklist for that tracker row", () => {
-  const src = readFileSync(join(here, "../../src/components/apply-view.tsx"), "utf8");
+  const src = readFileSync(join(here, "../../src/components/apply-view.jsx"), "utf8");
   const start = src.indexOf("Open the form directly");
   const end = src.indexOf("a.status === \"error\" && <ApplyExitBar />");
   assert.ok(start !== -1 && end > start);
@@ -42,6 +42,6 @@ test("a failed read offers the checklist for that tracker row", () => {
 });
 
 test("a marked tracker with no report number still shows the missing-file note", () => {
-  const src = readFileSync(join(here, "../../src/app/pipeline/[id]/apply/page.tsx"), "utf8");
+  const src = readFileSync(join(here, "../../src/app/pipeline/[id]/apply/page.jsx"), "utf8");
   assert.match(src, /pdfNote=\{reportNum != null && trackerMarked && resume === null \? null : disk\.note\}/);
 });

@@ -1,6 +1,6 @@
 // Drift guard: web's STATUS_ALIAS literal vs templates/states.yml.
 //
-// format.ts is node-free (client components import it), so it cannot read
+// format.js is node-free (client components import it), so it cannot read
 // states.yml at runtime — the alias map has to ship in the bundle as a
 // literal. This test is what makes that copy safe: it loads the real
 // states.yml and asserts every alias in it still resolves here.
@@ -15,8 +15,8 @@
 // nudge at someone who is mid-interview. That is #2249 (fixed by hand for one
 // state) recurring as #2917 with 27 aliases.
 //
-// Imports from status-alias.mjs rather than format.ts because `node --test`
-// has no TS runner. Reading up out of web/ follows clean-chips.test.mjs, which
+// Imports from status-alias.mjs, which format.js takes its alias map from.
+// Reading up out of web/ follows clean-chips.test.mjs, which
 // loads ../../../templates/portals.example.yml the same way.
 //
 // Run:  node --test tests/lib/status-alias.test.mjs

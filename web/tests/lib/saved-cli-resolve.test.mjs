@@ -1,4 +1,4 @@
-// Executes the REAL resolveCliId() from saved-cli.ts. The module is client-safe
+// Executes the REAL resolveCliId() from saved-cli.js. The module is client-safe
 // (localStorage + fetch, no node imports) and uses only strippable type syntax,
 // so node --test imports the .ts directly, the way explore-ai-dedup.test.mjs does.
 //
@@ -6,13 +6,13 @@
 // unchecked, so every run 404'd ("CLI '<id>' not found") with nothing on screen
 // connecting the failure to a stale setting.
 //
-// Run:  node --experimental-strip-types --test tests/lib/saved-cli-resolve.test.mjs
+// Run:  node --test tests/lib/saved-cli-resolve.test.mjs
 //       (or `npm test`, which passes the flag; it is unflagged from Node 22.18)
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-const { resolveCliId } = await import("../../src/lib/saved-cli.ts");
+const { resolveCliId } = await import("../../src/lib/saved-cli.js");
 
 const CONFIG_KEY = "career-ops:config";
 

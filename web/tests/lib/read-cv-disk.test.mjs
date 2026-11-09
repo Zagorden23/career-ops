@@ -6,7 +6,7 @@ import { after, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import "../helpers/web-ts-alias-loader.mjs";
 
-const { readCvDiskForRows } = await import("../../src/lib/read-cv-disk.ts");
+const { readCvDiskForRows } = await import("../../src/lib/read-cv-disk.js");
 
 const repo = fileURLToPath(new URL("../../..", import.meta.url));
 const saved = {

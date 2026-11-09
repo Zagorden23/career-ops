@@ -1,5 +1,5 @@
 // Guards the date computed by the child-process snippet in
-// src/lib/core/pipeline.ts (`addOffersToPipeline`) — the "Add to pipeline"
+// src/lib/core/pipeline.js (`addOffersToPipeline`) — the "Add to pipeline"
 // writer that stamps data/scan-history.tsv's first_seen column (#3070).
 //
 // `new Date().toISOString().slice(0, 10)` is the UTC day. West of Greenwich,
@@ -7,10 +7,10 @@
 // user's own clock, so scan.mjs's shouldDedupScanHistoryRow recheck/cooldown
 // window opened a day late for that row. #3071 fixed the same pattern in six
 // core .mjs call sites (including scan.mjs's own DEFAULT for this argument),
-// but pipeline.ts always passes an explicit `date` argument, which overrides
+// but pipeline.js always passes an explicit `date` argument, which overrides
 // that default — so this call site needed its own fix and its own guard.
 //
-// pipeline.ts is TypeScript, imports via the `@/` path alias (which plain
+// pipeline.js imports via the `@/` path alias (which plain
 // `node --test` cannot resolve without the Next.js build), and computes the
 // date inside a template-literal string executed in a SEPARATE spawned
 // process — so, same as tests/lib/core-writer-await.test.mjs, it cannot be
@@ -27,12 +27,12 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "lib", "core", "pipeline.ts");
+const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "lib", "core", "pipeline.js");
 const src = readFileSync(SRC, "utf8");
 
 // The generated child-process code lives inside the backtick template
 // assigned to `code`. Isolating it keeps the assertions below from also
-// matching an unrelated `new Date()` elsewhere in the (TypeScript) file.
+// matching an unrelated `new Date()` elsewhere in the module.
 function extractChildProcessCode() {
   const m = src.match(/const code = `([\s\S]*?)`;/);
   assert.ok(m, `${SRC}: could not find the \`const code = \`...\`;\` template — the writer snippet was restructured. Update this extractor.`);
@@ -78,7 +78,7 @@ test("localToday is imported into the spawned child from lib/local-today.mjs", (
   assert.match(
     code,
     /import\s*{\s*localToday\s*}\s*from\s+\$\{JSON\.stringify\(localTodayUrl\)\}\s*;/,
-    `${SRC}: the child process resolves imports independently of the TypeScript module's own ` +
+    `${SRC}: the child process resolves imports independently of the web module's own ` +
       `cwd, so localToday must be imported via an interpolated absolute file:// URL — the same ` +
       `pattern already used for scanUrl — not a bare relative specifier that would only resolve ` +
       `by coincidence of the spawn's cwd.`,

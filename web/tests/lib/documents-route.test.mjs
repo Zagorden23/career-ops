@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { handleDocumentsRequest } from "../../src/lib/documents.ts";
+import { handleDocumentsRequest } from "../../src/lib/documents.js";
 
 function setupTestEnv() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "career-ops-api-test-"));

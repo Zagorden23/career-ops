@@ -32,7 +32,7 @@ test("the shipped config/profile.example.yml yields its roles", () => {
 });
 
 test("primary is a LIST, not a string — the regression", () => {
-  // api/profile/route.ts writes `{ primary: roles.slice(0, 6) }`. The inline
+  // api/profile/route.js writes `{ primary: roles.slice(0, 6) }`. The inline
   // version tested `typeof roles.primary === "string"`, so the app could not
   // read back the profile it had just written.
   const kws = profileTargetKeywords({ target_roles: { primary: ["ML Engineer", "Inference Engineer"] } });

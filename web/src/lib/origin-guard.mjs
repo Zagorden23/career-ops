@@ -12,12 +12,12 @@
 // F1 covers more than the API. A page that re-resolves its own domain to
 // 127.0.0.1 (DNS rebinding) reaches the dashboard from the user's own browser as
 // same-origin, so the page routes — which render the CV, pipeline and reports —
-// are as sensitive as /api and are gated too; see src/proxy.ts's matcher. A
+// are as sensitive as /api and are gated too; see src/proxy.js's matcher. A
 // loopback bind does not close that, because the browser making the request is
 // already on the machine. What closes it is the Host filter below: the rebound
 // request still carries the attacker's domain in Host.
 //
-// This module is the pure decision logic behind `src/proxy.ts` (Next 16's
+// This module is the pure decision logic behind `src/proxy.js` (Next 16's
 // name for what used to be middleware.ts). It is kept free of node/next
 // imports so it runs on the edge runtime and is unit testable in isolation.
 //

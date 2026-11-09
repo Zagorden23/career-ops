@@ -8,7 +8,7 @@
 // (path-resolver.mjs exports getProfilePath). Until then the core doctor has no
 // override to agree with, and the test is reported as skipped rather than passed.
 //
-// Run:  node --experimental-strip-types --test tests/lib/profile-path-doctor-parity.test.mjs
+// Run:  node --test tests/lib/profile-path-doctor-parity.test.mjs
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -19,7 +19,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import "../helpers/web-ts-alias-loader.mjs";
 
-const { doctorState } = await import("../../src/lib/career-ops.ts");
+const { doctorState } = await import("../../src/lib/career-ops.js");
 
 const checkout = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const coreResolver = await import(pathToFileURL(path.join(checkout, "path-resolver.mjs")).href);

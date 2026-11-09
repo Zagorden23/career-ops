@@ -33,7 +33,7 @@ const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 // not fail this test, whereas a new source file with a familiar one should be
 // covered from the moment it lands.
 const TEXT_EXTENSIONS = new Set([
-  '.mjs', '.js', '.ts', '.tsx', '.go', '.sh', '.nix',
+  '.mjs', '.js', '.jsx', '.ts', '.tsx', '.go', '.sh', '.nix',
   '.md', '.txt', '.tex', '.html', '.css', '.svg',
   '.json', '.yml', '.yaml', '.tsv', '.cff', '.mod', '.sum', '.example', '.lock',
 ]);

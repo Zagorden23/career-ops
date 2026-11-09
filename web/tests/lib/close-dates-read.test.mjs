@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const repo = fileURLToPath(new URL("../../..", import.meta.url));
 process.env.CAREER_OPS_CODE_ROOT = repo;
 
-const { withCloseDates } = await import("../../src/lib/career-ops.ts");
+const { withCloseDates } = await import("../../src/lib/career-ops.js");
 
 const apps = [{ n: "1", url: "https://jobs.example.com/role" }];
 

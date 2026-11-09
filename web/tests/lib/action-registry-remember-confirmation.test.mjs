@@ -3,7 +3,7 @@ import test from "node:test";
 
 import "../helpers/web-ts-alias-loader.mjs";
 
-const { dispatch } = await import("../../src/app/actions/registry.ts");
+const { dispatch } = await import("../../src/app/actions/registry.js");
 
 // remember writes into modes/_profile.md, which every mode reads as the
 // user's own words. Model text there needs the user's yes first.

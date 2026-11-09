@@ -20,13 +20,13 @@ import path from "node:path";
 import * as yaml from "js-yaml";
 import "../helpers/web-ts-alias-loader.mjs";
 
-const { readLanguageConfig, doctorState } = await import("../../src/lib/career-ops.ts");
-const { seedExploreFilters } = await import("../../src/lib/core/portals.ts");
-const { loadProfileTargets, readScanTimeoutMs } = await import("../../src/lib/core/scan.ts");
-const { POST: updateProfile } = await import("../../src/app/api/profile/route.ts");
-const { GET: readCadence, POST: updateCadence } = await import("../../src/app/api/followups/cadence/route.ts");
+const { readLanguageConfig, doctorState } = await import("../../src/lib/career-ops.js");
+const { seedExploreFilters } = await import("../../src/lib/core/portals.js");
+const { loadProfileTargets, readScanTimeoutMs } = await import("../../src/lib/core/scan.js");
+const { POST: updateProfile } = await import("../../src/app/api/profile/route.js");
+const { GET: readCadence, POST: updateCadence } = await import("../../src/app/api/followups/cadence/route.js");
 const { resolvePdfPaths } = await import("../../src/lib/pdf-paths.mjs");
-const { readFollowupsEnabled } = await import("../../src/lib/followups-server.ts");
+const { readFollowupsEnabled } = await import("../../src/lib/followups-server.js");
 
 const PROFILE_A = `candidate:
   full_name: Alpha Person

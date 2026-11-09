@@ -1,7 +1,7 @@
 /**
  * drive-action.mjs — the agentic drive loop's action executor: the one place a
  * planner action is turned into something done to the page
- * (`web/src/lib/apply/drive.ts` calls it once per turn).
+ * (`web/src/lib/apply/drive.js` calls it once per turn).
  *
  * NEVER-SUBMIT is enforced here at runtime. `submit-guard.mjs` is the rule
  * ("would clicking this submit the application?"); this is where the rule is

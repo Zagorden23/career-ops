@@ -1110,8 +1110,8 @@ function printSummary(result) {
 
 // --json is the DEFAULT output form, not a mode switch: it names what the
 // script already does with no flag at all. It is listed here because callers
-// pass it explicitly — web/src/app/api/followups/route.ts and
-// web/src/app/api/followups/cadence/route.ts both spawn `[script, '--json']`
+// pass it explicitly — web/src/app/api/followups/route.js and
+// web/src/app/api/followups/cadence/route.js both spawn `[script, '--json']`
 // — and validateFlags() rejects any flag not on this list, so omitting it
 // made both routes exit 1 and read as "no follow-ups" (#3196 added the
 // validation without the flag the web already passed).

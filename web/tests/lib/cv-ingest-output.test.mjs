@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { cvOutputReader } from "../../src/lib/cv/ingest-output.mjs";
-import { parseCvStream, cvStreamErrorMessage } from "../../src/lib/cv/quality.ts";
+import { parseCvStream, cvStreamErrorMessage } from "../../src/lib/cv/quality.js";
 
 const proposal = 'Reading your CV…\n<<cv:start>>\n# CV -- Alex Example\n\n## Skills\n- Python\n<<cv:end>>\n';
 

@@ -13,7 +13,7 @@ const RAW_BRAND_TEXT_CSS = /(?<![\w-])color:\s*var\(--color-brand\)/;
 async function sourceFiles(dir) {
   const entries = await readdir(dir, { withFileTypes: true, recursive: true });
   return entries
-    .filter((e) => e.isFile() && /\.(tsx?|jsx?|mjs|css)$/.test(e.name))
+    .filter((e) => e.isFile() && /\.(jsx?|mjs|css)$/.test(e.name))
     .map((e) => path.join(e.parentPath, e.name));
 }
 
@@ -75,7 +75,7 @@ test("the light brand-text token reaches AA (4.5:1) on every light surface", asy
 test("an arrow function before className still counts as faded brand text", async () => {
   const tokens = rootTokens(await readFile(GLOBALS, "utf8"));
   const source = `<Button onClick={() => save()} className="text-brand-text/60">Save</Button>`;
-  const misses = fadedBrandMisses(source, tokens, "fixture.tsx");
+  const misses = fadedBrandMisses(source, tokens, "fixture.jsx");
   assert.ok(misses.some((line) => line.includes("<Button>") && line.includes("text-brand-text/60")), misses.join("\n") || "the arrow tag was skipped");
 });
 
@@ -122,17 +122,17 @@ function fadedBrandMisses(source, tokens, label) {
 test("the faded brand text check reads tags that span lines", async () => {
   const tokens = rootTokens(await readFile(GLOBALS, "utf8"));
   const sample = '<div>\n  <span\n    className="text-brand-text/60"\n  >x</span>\n  <Sparkles\n    className="text-brand-text/60" />\n</div>';
-  const misses = fadedBrandMisses(sample, tokens, "sample.tsx");
+  const misses = fadedBrandMisses(sample, tokens, "sample.jsx");
   assert.ok(misses.length > 0, "multi-line <span> was missed");
-  assert.ok(misses.every((m) => m.startsWith("sample.tsx:2: <span>")), misses.join("\n"));
+  assert.ok(misses.every((m) => m.startsWith("sample.jsx:2: <span>")), misses.join("\n"));
 });
 
 test("the faded brand text check reads a Link but not a LinkIcon", async () => {
   const tokens = rootTokens(await readFile(GLOBALS, "utf8"));
   const sample = '<Link href="/r" className="text-brand-text/60">Report</Link>\n<LinkIcon className="text-brand-text/60" />';
-  const misses = fadedBrandMisses(sample, tokens, "sample.tsx");
+  const misses = fadedBrandMisses(sample, tokens, "sample.jsx");
   assert.ok(misses.length > 0, "<Link> text was missed");
-  assert.ok(misses.every((m) => m.startsWith("sample.tsx:1: <Link>")), misses.join("\n"));
+  assert.ok(misses.every((m) => m.startsWith("sample.jsx:1: <Link>")), misses.join("\n"));
 });
 
 test("faded brand text on a text element still reaches AA on every light surface", async () => {

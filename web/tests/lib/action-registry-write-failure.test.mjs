@@ -3,7 +3,7 @@ import test from "node:test";
 
 import "../helpers/web-ts-alias-loader.mjs";
 
-const { dispatch } = await import("../../src/app/actions/registry.ts");
+const { dispatch } = await import("../../src/app/actions/registry.js");
 
 // setProfile / setPortals return a `failure` promise with their DoneInfo, so
 // the console can mark the confirmation that started the write as failed

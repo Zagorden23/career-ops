@@ -98,7 +98,7 @@ test("missing rows and fields do not throw", () => {
 // good. When the evaluated row's posting URL and the scan row's URL are both
 // known, the URL decides; when either is unknown, the #3131 key still does.
 // The report reader is injected in production (the route passes
-// readLinkedReport from career-ops.ts), so these tests inject a fake one.
+// readLinkedReport from career-ops.js), so these tests inject a fake one.
 
 const REQ_A = "https://boards.greenhouse.io/acme/jobs/1001";
 const REQ_B = "https://boards.greenhouse.io/acme/jobs/2002";

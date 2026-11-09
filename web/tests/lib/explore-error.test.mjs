@@ -26,7 +26,7 @@ test("the scanner-missing code is scanner-missing", () => {
 // The reason this keys on a code and not on HTTP 400.
 //
 // 400 is a SHARED channel. /api/explore/ai returns three structurally different
-// 400s, and the AI call site in explore-provider.tsx classified all of them as
+// 400s, and the AI call site in explore-provider.jsx classified all of them as
 // "your checkout has no scanner":
 //
 //   { error: "bad json" }

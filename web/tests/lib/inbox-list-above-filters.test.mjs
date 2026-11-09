@@ -7,7 +7,7 @@ import { test } from "node:test";
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 
 test("the inbox list sits above LinkedIn and the filters", () => {
-  const triage = readFileSync(join(root, "src/components/inbox/inbox-triage.tsx"), "utf8");
+  const triage = readFileSync(join(root, "src/components/inbox/inbox-triage.jsx"), "utf8");
   const list = triage.indexOf("<ul");
   const paste = triage.indexOf("<LinkedInPaste");
   const filters = triage.indexOf("<FacetChips");
@@ -17,12 +17,12 @@ test("the inbox list sits above LinkedIn and the filters", () => {
   assert.ok(filters > list, "the filters sit under the list");
   assert.ok(keys > filters, "the keyboard hint sits with the filters");
 
-  const pipeline = readFileSync(join(root, "src/components/pipeline-view.tsx"), "utf8");
+  const pipeline = readFileSync(join(root, "src/components/pipeline-view.jsx"), "utf8");
   assert.doesNotMatch(pipeline, /LinkedInPaste/);
 });
 
 test("a filter keeps the batch cap and a way to see more", () => {
-  const triage = readFileSync(join(root, "src/components/inbox/inbox-triage.tsx"), "utf8");
+  const triage = readFileSync(join(root, "src/components/inbox/inbox-triage.jsx"), "utf8");
   assert.match(triage, /const BATCH = 20;/);
   assert.match(triage, /const capped = !showAll;/);
   assert.doesNotMatch(triage, /const capped = !showAll && !anyFacet;/);

@@ -10,7 +10,7 @@ import { test } from "node:test";
 // wiring tests, because the bug is the missing word in the markup.
 
 const src = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "../../src/components/home/follow-up-card.tsx"),
+  join(dirname(fileURLToPath(import.meta.url)), "../../src/components/home/follow-up-card.jsx"),
   "utf8",
 );
 

@@ -23,7 +23,7 @@ function readFile(path) {
 }
 
 // The heading shape the report parser recognizes. web/src/lib/report-sections.mjs
-// (imported by web/src/components/report-view.tsx) splits a body on /^##\s+(.*)$/
+// (imported by web/src/components/report-view.jsx) splits a body on /^##\s+(.*)$/
 // and promotes a heading ending in `(lead)` or `(verdict)`. The mode contract
 // requires the language-invariant `(lead)` marker (modes/oferta.md), so this
 // guard matches `(lead)` only. `##` must be followed by whitespace, any kind

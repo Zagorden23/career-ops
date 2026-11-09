@@ -47,7 +47,7 @@ test("a notice above the table changes which rows belong on screen", () => {
 });
 
 test("the tracker remeasures when an off-screen save failure appears", () => {
-  const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../src/components/pipeline-view.tsx"), "utf8");
+  const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../src/components/pipeline-view.jsx"), "utf8");
   const start = src.indexOf("const rect = el.getBoundingClientRect()");
   assert.ok(start > 0, "measurement not found");
   const deps = src.slice(start).match(/\}, \[([^\]]+)\]/);
@@ -69,7 +69,7 @@ test("a filter change keeps the measured rows instead of the first screen", () =
 });
 
 test("the first-screen guess is only used before any measurement", () => {
-  const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../src/components/pipeline-view.tsx"), "utf8");
+  const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../src/components/pipeline-view.jsx"), "utf8");
   const line = src.slice(src.indexOf("const span ="), src.indexOf("const bodyRef"));
   assert.match(line, /!windowState\s*\?\s*initialTrackerWindow/);
   assert.match(line, /clampTrackerWindow\(windowState\.span, filtered\.length\)/);

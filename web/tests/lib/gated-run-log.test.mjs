@@ -15,7 +15,7 @@ register(`data:text/javascript,${encodeURIComponent(`
     return nextResolve(specifier, context);
   }
 `)}`, import.meta.url);
-const { POST } = await import("../../src/app/api/runs/save/route.ts");
+const { POST } = await import("../../src/app/api/runs/save/route.js");
 
 test("the actual run-log writer retains a gate's status, reason and confirmation guidance without a score", async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "co-gated-run-log-"));

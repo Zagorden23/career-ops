@@ -37,7 +37,7 @@ test("only this offer's finished pdf job refreshes the report", () => {
   assert.equal(pdfJobRefreshesReport({ kind: "evaluate", input: "4" }, "4"), false);
   assert.equal(pdfJobRefreshesReport(null, "4"), false);
   const button = readFileSync(
-    join(dirname(fileURLToPath(import.meta.url)), "../../src/components/generate-pdf-button.tsx"),
+    join(dirname(fileURLToPath(import.meta.url)), "../../src/components/generate-pdf-button.jsx"),
     "utf8",
   );
   assert.match(button, /pdfJobRefreshesReport\(detail, n\)/);

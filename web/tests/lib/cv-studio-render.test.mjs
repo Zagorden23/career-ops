@@ -10,7 +10,7 @@ import "../helpers/web-ts-alias-loader.mjs";
 import { parseBlocks } from "../../src/lib/cv-studio/html-blocks.mjs";
 import { buildStudioDoc, emptyEdits } from "../../src/lib/cv-studio/studio.mjs";
 
-const { renderEditedPdf } = await import("../../src/lib/cv-studio/server.ts");
+const { renderEditedPdf } = await import("../../src/lib/cv-studio/server.js");
 
 const HTML = `<html><body><div class="section">
     <div class="section-title">Work Experience</div>

@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const source = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "../../src/components/pipeline-view.tsx"),
+  join(dirname(fileURLToPath(import.meta.url)), "../../src/components/pipeline-view.jsx"),
   "utf8",
 );
 

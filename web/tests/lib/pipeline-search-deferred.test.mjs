@@ -1,5 +1,5 @@
 // The tracker table re-filtered and re-rendered every row synchronously on each
-// search keystroke, so typing waited on the whole table. pipeline-view.tsx now
+// search keystroke, so typing waited on the whole table. pipeline-view.jsx now
 // filters on useDeferredValue(q): the input updates at once and the table
 // catches up at low priority.
 //
@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../src/components/pipeline-view.tsx"), "utf8");
+const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../src/components/pipeline-view.jsx"), "utf8");
 
 test("the search input stays bound to the immediate value", () => {
   assert.match(src, /value=\{q\}/);

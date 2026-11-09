@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 const src = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "../../src/components/mark-pdf-ready-button.tsx"),
+  join(dirname(fileURLToPath(import.meta.url)), "../../src/components/mark-pdf-ready-button.jsx"),
   "utf8",
 );
 
@@ -19,7 +19,7 @@ test("PDF ready is the label only when the file is on disk and the tracker is al
 
 test("the apply checklist is ready only when this report's resume can be downloaded", () => {
   const page = readFileSync(
-    join(dirname(fileURLToPath(import.meta.url)), "../../src/app/pipeline/[id]/apply/page.tsx"),
+    join(dirname(fileURLToPath(import.meta.url)), "../../src/app/pipeline/[id]/apply/page.jsx"),
     "utf8",
   );
   assert.match(page, /pdfReady=\{resume !== null\}/);

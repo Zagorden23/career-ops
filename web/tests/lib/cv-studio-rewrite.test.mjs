@@ -77,7 +77,7 @@ test("the instruction and the bullet reach the prompt as quoted data", () => {
 });
 
 test("a stock phrase from another CV bullet is allowed and a metric from that bullet is not", async () => {
-  const { unsupportedRewriteClaims } = await import("../../src/lib/cv-studio/server.ts");
+  const { unsupportedRewriteClaims } = await import("../../src/lib/cv-studio/server.js");
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cv-studio-voice-"));
   const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
   const previous = {

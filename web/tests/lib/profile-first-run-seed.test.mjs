@@ -14,8 +14,8 @@ import "../helpers/web-ts-alias-loader.mjs";
 // the save did not replace would reach a CV as the user's own claim. Runs against
 // the real template: a field added to it later has to be classified here, not
 // found on someone's CV.
-const { POST: saveProfile } = await import("../../src/app/api/profile/route.ts");
-const { POST: saveCadence } = await import("../../src/app/api/followups/cadence/route.ts");
+const { POST: saveProfile } = await import("../../src/app/api/profile/route.js");
+const { POST: saveCadence } = await import("../../src/app/api/followups/cadence/route.js");
 
 const CODE_ROOT = fileURLToPath(new URL("../../..", import.meta.url));
 const template = readFileSync(path.join(CODE_ROOT, "config", "profile.example.yml"), "utf8");

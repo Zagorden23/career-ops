@@ -1,8 +1,8 @@
 // Tests for the prompts /api/run sends each worker kind (#2185).
 //
 // The pdf prompt is the load-bearing half of this fix: it is what tells the agent
-// to EMIT the CV instead of saving it. It used to live inside route.ts, where the
-// only available guard was grepping the file — which matched route.ts's own
+// to EMIT the CV instead of saving it. It used to live inside route.js, where the
+// only available guard was grepping the file — which matched route.js's own
 // comments and so could never fail. Asserting the returned string closes that.
 //
 // Run:  node --test tests/lib/run-prompts.test.mjs
@@ -39,7 +39,7 @@ test("buildPrompt: the pdf prompt asks for the envelope and forbids saving", () 
 
 test("buildPrompt: the pdf prompt does not claim the agent has no write tools", () => {
   // Given that claim is only true on Claude Code — the six CLIs invoked via
-  // clis.ts's bare args keep their default tool access
+  // clis.js's bare args keep their default tool access
   const prompt = buildPrompt({ kind: "pdf", ...ARGS });
 
   // Then the prompt states an instruction ("do not save"), never a false fact
@@ -82,7 +82,7 @@ test("buildPrompt: the pdf prompt still pins tailoring to the real mode", () => 
 });
 
 test("buildPrompt: every kind ends with exactly one VERDICT instruction", () => {
-  // Given each kind — job-store.tsx parses that final line client-side
+  // Given each kind — job-store.jsx parses that final line client-side
   for (const kind of ["pdf", "research", "evaluate", "fix-portal", "cover"]) {
     const prompt = buildPrompt({ kind, ...ARGS, ...(kind === "cover" ? COVER_ARGS : {}) });
 
@@ -252,7 +252,7 @@ test("buildPrompt: the default configuration adds no market note", () => {
 // A candidate can be running parallel campaigns in more than one market at
 // once (e.g. an immigrant applying in both Canada and China simultaneously).
 // language.modes_dir may declare multiple candidate markets as an array;
-// readLanguageConfig() (web/src/lib/career-ops.ts) normalizes both the single
+// readLanguageConfig() (web/src/lib/career-ops.js) normalizes both the single
 // string and the array shape into `modesDirs`, primary market first.
 
 const DE_ZH = {

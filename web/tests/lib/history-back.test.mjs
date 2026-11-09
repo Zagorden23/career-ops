@@ -44,7 +44,7 @@ test("a checklist returns to the pipeline entry behind the report", () => {
   const href = "/pipeline?tab=ALL&q=Fixture";
   assert.equal(previousMatchIndex(href, entries[2].url, 2, entries), 0);
   assert.equal(previousMatchIndex(href, entries[1].url, 1, entries), 0);
-  const apply = readFileSync(new URL("../../src/app/pipeline/[id]/apply/page.tsx", import.meta.url), "utf8");
+  const apply = readFileSync(new URL("../../src/app/pipeline/[id]/apply/page.jsx", import.meta.url), "utf8");
   assert.match(apply, /const query = pipelineQuery\(await searchParams\)/);
   const suffixAt = apply.indexOf("const suffix = query ? `?${query}` : \"\"");
   assert.ok(suffixAt > 0, "checklist links share one pipelineQuery suffix");
@@ -81,10 +81,10 @@ test("a typed search is written onto the list entry only when the address bar la
 
 test("the list, the studio, and the checklist walk back through the real entry", () => {
   const root = new URL("../../src/", import.meta.url);
-  const pipeline = readFileSync(new URL("./components/pipeline-view.tsx", root), "utf8");
-  const back = readFileSync(new URL("./components/back-link.tsx", root), "utf8");
-  const studio = readFileSync(new URL("./components/cv-studio/cv-studio.tsx", root), "utf8");
-  const pdf = readFileSync(new URL("./components/generate-pdf-button.tsx", root), "utf8");
+  const pipeline = readFileSync(new URL("./components/pipeline-view.jsx", root), "utf8");
+  const back = readFileSync(new URL("./components/back-link.jsx", root), "utf8");
+  const studio = readFileSync(new URL("./components/cv-studio/cv-studio.jsx", root), "utf8");
+  const pdf = readFileSync(new URL("./components/generate-pdf-button.jsx", root), "utf8");
   assert.match(pipeline, /listEntrySync\(pathname, params\.toString\(\), q\)/);
   assert.match(pipeline, /state\.__NA !== true/);
   const syncAt = pipeline.indexOf("function syncTypedSearch");
@@ -99,16 +99,16 @@ test("the list, the studio, and the checklist walk back through the real entry",
   assert.match(pdf, /cv-studio\$\{jobQuery\}`/);
   assert.match(pdf, /\/jobs\/\$\{state\.jobId\}\$\{jobQuery\}/);
   assert.match(pdf, /\/jobs\/\$\{failure\.jobId\}\$\{jobQuery\}/);
-  const cover = readFileSync(new URL("./components/cover-draft-button.tsx", root), "utf8");
+  const cover = readFileSync(new URL("./components/cover-draft-button.jsx", root), "utf8");
   assert.match(cover, /pipelineQuery\(useSearchParams\(\)\.toString\(\)\)/);
   assert.match(cover, /\/jobs\/\$\{state\.jobId\}\$\{jobQuery\}/);
   assert.match(cover, /\/jobs\/\$\{job\.id\}\$\{jobQuery\}/);
   assert.match(cover, /\/jobs\/\$\{state\.failure\.jobId\}\$\{jobQuery\}/);
   assert.doesNotMatch(cover, /\/jobs\/\$\{[^}]+\}`/);
   assert.match(studio, /pipelineQuery\(useSearchParams\(\)\.toString\(\)\)/);
-  const compare = readFileSync(new URL("./app/pipeline/compare/page.tsx", root), "utf8");
+  const compare = readFileSync(new URL("./app/pipeline/compare/page.jsx", root), "utf8");
   assert.match(compare, /\/pipeline\/\$\{c\.n\}\$\{reportQuery\}/);
-  const jobPage = readFileSync(new URL("./app/jobs/[id]/page.tsx", root), "utf8");
+  const jobPage = readFileSync(new URL("./app/jobs/[id]/page.jsx", root), "utf8");
   assert.match(jobPage, /pipelineQuery\(useSearchParams\(\)\.toString\(\)\)/);
   assert.match(jobPage, /href=\{pipelineHref\}/);
   assert.doesNotMatch(jobPage, /href="\/pipeline"/);

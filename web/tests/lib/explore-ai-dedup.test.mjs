@@ -1,6 +1,6 @@
-// Executes the REAL makeAiStreamParser / canon() from explore-ai.ts — the file
+// Executes the REAL makeAiStreamParser / canon() from explore-ai.js — the file
 // has no `@/` alias imports and no Node-only deps ("Client-safe (NO node
-// imports)" per its own header), so unlike pipeline.ts it can be imported
+// imports)" per its own header), so unlike pipeline.js it can be imported
 // directly here rather than needing source-text extraction.
 //
 // Covers the silent-drop bug: canon() used to key on host+pathname only,
@@ -12,7 +12,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { makeAiStreamParser, canon } from "../../src/lib/explore-ai.ts";
+import { makeAiStreamParser, canon } from "../../src/lib/explore-ai.js";
 
 const envelope = (offer) => `<<offer:${JSON.stringify(offer)}>>`;
 

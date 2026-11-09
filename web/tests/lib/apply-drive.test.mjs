@@ -15,8 +15,8 @@
 // of the LLM. Element facts are read by the real `factsOf`, off fake elements
 // that answer the DOM calls it makes, so skipping the re-read is observable too.
 //
-// driveSession itself (drive.ts) is TypeScript behind the `@/` alias and spawns
-// the CLI, so it cannot be imported here. The last tests read its source
+// driveSession itself (drive.js) sits behind the `@/` alias and spawns the
+// CLI, so it is not imported here. The last tests read its source
 // instead, in the style of drive-stream-close.test.mjs: the loop must hand every
 // action to this executor and do nothing to an element on its own.
 //
@@ -528,20 +528,20 @@ test("a scripted planner fills the form and never submits it, however it tries",
 
 // ── The loop uses this executor, and only this executor ──
 
-const DRIVE = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../src/lib/apply/drive.ts"), "utf8");
+const DRIVE = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../src/lib/apply/drive.js"), "utf8");
 // Comments describe actions; only code performs them.
 const DRIVE_CODE = DRIVE.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 
 test("driveSession hands every action to executeAction, with this turn's actionable refs", () => {
   assert.match(DRIVE, /import\s*\{[^}]*\bexecuteAction\b[^}]*\}\s*from\s*"\.\/drive-action\.mjs"/);
   const calls = DRIVE_CODE.match(/\bexecuteAction\(/g) ?? [];
-  assert.equal(calls.length, 1, "drive.ts must execute planner actions in exactly one place");
+  assert.equal(calls.length, 1, "drive.js must execute planner actions in exactly one place");
   assert.match(DRIVE_CODE, /await executeAction\(page, frame, act, snap\.actionable\)/);
 });
 
-test("drive.ts does nothing to an element itself", () => {
+test("drive.js does nothing to an element itself", () => {
   // The snapshot's own `evaluate` and `$$` read the page; these act on it. One
-  // of them appearing in drive.ts is an action path the guard above never sees.
+  // of them appearing in drive.js is an action path the guard above never sees.
   const acting = /\.(click|dblclick|tap|fill|type|press|pressSequentially|check|uncheck|setChecked|selectOption|setInputFiles|dispatchEvent|focus|hover|dragTo)\(/g;
   assert.deepEqual(DRIVE_CODE.match(acting) ?? [], [], "element actions belong in drive-action.mjs, behind the submit guard");
   // Anchor: the pattern must be able to see an action when there is one.

@@ -2,7 +2,7 @@
 // a window. The Chrome error below is the bug: openSession launches first and
 // only then notices the host.
 //
-// Run (from web/): node --experimental-strip-types --test tests/lib/apply-unsupported-ats.test.mjs
+// Run (from web/): node --test tests/lib/apply-unsupported-ats.test.mjs
 
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
@@ -37,8 +37,8 @@ if (!playwright.chromium?.launch?.refusedByTest) {
 }
 
 const { setHostResolver } = await import(pathToFileURL(join(root, "liveness-browser.mjs")).href);
-const { openSession } = await import("../../src/lib/apply/session.ts");
-const { classifyEmpty, tryApplyTrigger } = await import("../../src/lib/apply/diagnose.ts");
+const { openSession } = await import("../../src/lib/apply/session.js");
+const { classifyEmpty, tryApplyTrigger } = await import("../../src/lib/apply/diagnose.js");
 const { PORTAL_TIPS } = await import("../../src/lib/apply-checklist.mjs");
 const { unsupportedInAppAts, checklistHrefFor } = await import("../../src/lib/apply/unsupported-ats.mjs");
 const { sessionFollowUp } = await import("../../src/lib/apply/session-result.mjs");
@@ -124,7 +124,7 @@ test("POST /api/apply/session returns the checklist link and does not launch Chr
   globalThis.__applyLaunchAttempts = 0;
   const restore = setHostResolver(async () => ["93.184.216.34"]);
   try {
-    const { POST } = await import("../../src/app/api/apply/session/route.ts");
+    const { POST } = await import("../../src/app/api/apply/session/route.js");
     const res = await POST(
       new Request("http://fixture.invalid/api/apply/session", {
         method: "POST",
@@ -150,7 +150,7 @@ test("POST /api/apply/session omits the checklist link when no application numbe
   globalThis.__applyLaunchAttempts = 0;
   const restore = setHostResolver(async () => ["93.184.216.34"]);
   try {
-    const { POST } = await import("../../src/app/api/apply/session/route.ts");
+    const { POST } = await import("../../src/app/api/apply/session/route.js");
     const res = await POST(
       new Request("http://fixture.invalid/api/apply/session", {
         method: "POST",
@@ -562,7 +562,7 @@ async function runChild(source) {
   const file = join(dir, "child.mjs");
   try {
     await writeFile(file, source);
-    const { stdout } = await execFileAsync(process.execPath, ["--experimental-strip-types", file], {
+    const { stdout } = await execFileAsync(process.execPath, [file], {
       cwd: join(here, "../.."),
       timeout: 30_000,
     });
@@ -596,7 +596,7 @@ test("a failed vendor import succeeds on the next call", async () => {
 });
 
 test("POST /api/apply/session returns a controlled error when the vendor file cannot load", async () => {
-  const route = pathToFileURL(join(here, "../../src/app/api/apply/session/route.ts")).href;
+  const route = pathToFileURL(join(here, "../../src/app/api/apply/session/route.js")).href;
   const alias = pathToFileURL(join(here, "../helpers/web-ts-alias-loader.mjs")).href;
   const liveness = pathToFileURL(join(root, "liveness-browser.mjs")).href;
   const missing = join(here, "../fixtures");

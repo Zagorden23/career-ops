@@ -142,7 +142,7 @@ test("the ASCII double-hyphen Block form is stripped whole", () => {
 });
 
 test("the Interview Plan at F is not a verdict", () => {
-  // report-view.tsx read "whatever is lettered F" as the verdict and promoted it
+  // report-view.jsx read "whatever is lettered F" as the verdict and promoted it
   // into a callout built for a single sentence. F has been the Interview Plan
   // since before that callout existed (#1535 landed against a modes/oferta.md
   // that already read "## F) Interview Plan"), so every report rendered a table

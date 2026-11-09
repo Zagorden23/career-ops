@@ -11,8 +11,7 @@
 // auto-approved, so the user's runtime choice silently changes what a worker
 // may do to their files — with both paths identical in the UI.
 //
-// clis.ts is TypeScript and this test is .mjs, so KNOWN is read as text. Same
-// deliberate choice as clis-coverage.test.mjs: a regex over the shipped source
+// KNOWN in clis.js is read as text rather than imported. Same deliberate choice as clis-coverage.test.mjs: a regex over the shipped source
 // is enough to catch a forgotten flag and needs no build step.
 //
 // Run:  node --test tests/lib/clis-permissions.test.mjs
@@ -23,7 +22,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const CLIS_TS = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "lib", "clis.ts");
+const CLIS_TS = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "lib", "clis.js");
 const src = readFileSync(CLIS_TS, "utf8");
 
 /** The KNOWN array body — the shipped argv, not the surrounding prose. A flag
@@ -57,7 +56,7 @@ test("the fixture this guard reads still looks like itself", () => {
   // Without this, a refactor that moves or renames KNOWN would leave every
   // check below scanning an empty string and passing vacuously — green by
   // measuring nothing, which is the failure mode this whole file exists for.
-  assert.notEqual(body, "", "KNOWN not found in clis.ts — has the file changed shape?");
+  assert.notEqual(body, "", "KNOWN not found in clis.js — has the file changed shape?");
   const entries = [...body.matchAll(/id:\s*"([^"]+)"/g)].length;
   assert.ok(entries >= 7, `KNOWN parsed as ${entries} entries — the regex has stopped seeing the array`);
 });

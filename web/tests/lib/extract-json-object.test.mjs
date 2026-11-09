@@ -1,5 +1,5 @@
 // extractJsonObject salvages the largest valid prefix of a truncated LLM
-// answer (apply/prefill/route.ts). Factored into its own .mjs specifically so
+// answer (apply/prefill/route.js). Factored into its own .mjs specifically so
 // it can be exercised directly here — no @/ alias, no Node-only deps.
 //
 // Covers the bug: the truncation-salvage path used to compute the closing

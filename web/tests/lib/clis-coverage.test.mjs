@@ -2,11 +2,10 @@
 //
 // This guards the drift that let Grok Build CLI go missing: it was wired into
 // lib/agent-cli.mjs (AGENT_CLIS), the scaffolder, docs/SUPPORTED_CLIS.md, the README
-// and .grok/skills/, yet KNOWN in web/src/lib/clis.ts never listed it — so the
+// and .grok/skills/, yet KNOWN in web/src/lib/clis.js never listed it — so the
 // web UI silently could not run on it. Nothing tied the two lists together.
 //
-// clis.ts is TypeScript and these tests are .mjs, so KNOWN is read as text. That
-// is deliberate: a regex over `bin: "..."` is enough to catch a forgotten entry,
+// KNOWN in clis.js is read as text rather than imported. That is deliberate: a regex over `bin: "..."` is enough to catch a forgotten entry,
 // and it keeps the guard free of a build step.
 //
 // Run:  node --test tests/lib/clis-coverage.test.mjs
@@ -18,7 +17,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const WEB = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const CLIS_TS = join(WEB, "src", "lib", "clis.ts");
+const CLIS_TS = join(WEB, "src", "lib", "clis.js");
 const SUPPORTED_MD = join(WEB, "..", "docs", "SUPPORTED_CLIS.md");
 
 /** Binaries KNOWN can spawn. */
@@ -39,14 +38,14 @@ const md = readFileSync(SUPPORTED_MD, "utf8");
 test("the fixtures this guard reads still look like themselves", () => {
   // If either file is refactored past these regexes, the checks below would
   // pass vacuously over empty sets. Fail loudly instead.
-  assert.ok(knownBins(src).size >= 7, "KNOWN parsed as near-empty — has clis.ts changed shape?");
+  assert.ok(knownBins(src).size >= 7, "KNOWN parsed as near-empty — has clis.js changed shape?");
   assert.ok(documentedHeadlessBins(md).size >= 5, "no headless rows parsed — has the docs table changed shape?");
 });
 
 test("every documented headless CLI is selectable in the web UI", () => {
   const known = knownBins(src);
   const missing = [...documentedHeadlessBins(md)].filter((bin) => !known.has(bin));
-  assert.deepEqual(missing, [], `documented headless but absent from KNOWN in clis.ts: ${missing.join(", ")}`);
+  assert.deepEqual(missing, [], `documented headless but absent from KNOWN in clis.js: ${missing.join(", ")}`);
 });
 
 test("Hermes Agent is wired up with one-shot args", () => {

@@ -254,7 +254,7 @@ test('apply instructions name the scope guard and stop telling agents to attach 
   assert.match(agents, /NEVER submit an application/);
   assert.equal(apply.includes('Read active Chrome tab'), false);
 
-  const session = readFileSync(join(ROOT, 'web/src/lib/apply/session.ts'), 'utf8');
+  const session = readFileSync(join(ROOT, 'web/src/lib/apply/session.js'), 'utf8');
   assert.match(session, /HEADED_APPLY_LAUNCH/);
   assert.match(session, /resolveRootScript/);
   assert.equal(/from\s+['"][^'"]*apply-scope\.mjs['"]/.test(session), false);

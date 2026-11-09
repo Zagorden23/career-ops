@@ -65,15 +65,15 @@ test("parseAllowedHosts returns an empty set for blank/undefined", () => {
 
 // --- where the guard runs -------------------------------------------------
 
-// A decision this module cannot make about itself: proxy.ts's matcher chooses
+// A decision this module cannot make about itself: proxy.js's matcher chooses
 // which requests reach checkRequest at all, and a guard that never runs is
 // indistinguishable from one that always allows. The matcher is a plain regex
 // path, so it is extracted and exercised rather than pattern-matched as text.
 test("the guard runs on page routes, not only on /api", () => {
-  // Given the matcher proxy.ts exports
-  const source = readFileSync(join(WEB_ROOT, "src", "proxy.ts"), "utf8");
+  // Given the matcher proxy.js exports
+  const source = readFileSync(join(WEB_ROOT, "src", "proxy.js"), "utf8");
   const matcher = /matcher:\s*"([^"]+)"/.exec(source)?.[1];
-  assert.ok(matcher, "proxy.ts should export a single string matcher");
+  assert.ok(matcher, "proxy.js should export a single string matcher");
   const matches = (path) => new RegExp(`^${matcher}$`).test(path);
 
   // When the paths that carry the user's data are tested against it

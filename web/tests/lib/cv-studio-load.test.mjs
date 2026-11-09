@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import "../helpers/web-ts-alias-loader.mjs";
 
-const { loadStudio } = await import("../../src/lib/cv-studio/server.ts");
+const { loadStudio } = await import("../../src/lib/cv-studio/server.js");
 
 const HTML = `<html><body><div class="section">
     <div class="section-title">Work Experience</div>

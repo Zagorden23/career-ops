@@ -37,10 +37,14 @@ it with no build step and no `@/` alias loader. See `tracker-table.mjs`,
 you want to assert.
 
 ```
-npm test          # node --test "tests/**/*.test.mjs"
-npm run typecheck # tsc --noEmit
-npm run dev       # the app, reading the sibling career-ops files
+npm test    # node --test "tests/**/*.test.mjs"
+npm run dev # the app, reading the sibling career-ops files
 ```
+
+The app is plain JavaScript (`.js` / `.jsx` / `.mjs`) — there is no TypeScript
+step and no typecheck. A runtime check at the boundary is what replaces a
+compile-time one: validate an API body, a query string or a parsed YAML file
+where you would once have leaned on a type annotation.
 
 Point `CAREER_OPS_ROOT` at a scratch directory when you need data to test against;
 it is how the app finds the user's files, and it keeps your real pipeline out of it.

@@ -346,7 +346,7 @@ for (const [label, from, to] of [
 }
 
 check('the override route keeps the web lock timeout', () => {
-  const route = readFileSync(join(ROOT, 'web/src/app/api/followups/override/route.ts'), 'utf8');
+  const route = readFileSync(join(ROOT, 'web/src/app/api/followups/override/route.js'), 'utf8');
   assert.match(route, /CAREER_OPS_WEB_FOLLOWUPS_LOCK_TIMEOUT_MS/);
   assert.equal((route.match(/lockTimeoutMs: webLockTimeoutMs\(\)/g) || []).length, 2);
 });

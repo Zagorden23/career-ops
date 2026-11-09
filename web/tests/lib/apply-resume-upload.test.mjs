@@ -17,7 +17,7 @@ register(`data:text/javascript,${encodeURIComponent(`
       ? path.join(${JSON.stringify(src)}, specifier.slice(2))
       : specifier.startsWith('.') ? fileURLToPath(new URL(specifier, context.parentURL)) : null;
     if (base) {
-      for (const ext of ['', '.ts', '.mjs', '.js']) {
+      for (const ext of ['', '.js', '.mjs']) {
         if (existsSync(base + ext)) return { url: pathToFileURL(base + ext).href, shortCircuit: true };
       }
     }
@@ -25,7 +25,7 @@ register(`data:text/javascript,${encodeURIComponent(`
   }
 `)}`, pathToFileURL(src + "/"));
 
-const { fillSession } = await import("../../src/lib/apply/session.ts");
+const { fillSession } = await import("../../src/lib/apply/session.js");
 const resume = { id: "resume", type: "file", label: "Resume", required: true };
 const cover = { id: "cover", type: "file", label: "Cover letter", required: false };
 
@@ -101,7 +101,7 @@ test("CV upload without a display name still sends the path", async () => {
 // Opt-in browser proof: only local DOM and disposable documents; no ATS or CLI.
 test("a re-rendered resume field never receives its CV through the cover input", { skip: !process.env.APPLY_UPLOAD_BROWSER_TEST }, async (t) => {
   const { chromium } = await import("playwright-core");
-  const { extractForm } = await import("../../src/lib/apply/extract.ts");
+  const { extractForm } = await import("../../src/lib/apply/extract.js");
   const browser = await chromium.launch({ headless: true });
   t.after(() => browser.close());
   const page = await browser.newPage();

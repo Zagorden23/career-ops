@@ -141,7 +141,7 @@ async function stop(server) {
 // Echoes the suite's output and returns it, so the summary counts can be read.
 function runSuite(file, env) {
   return new Promise((resolve) => {
-    const child = spawn(process.execPath, ["--experimental-strip-types", "--test", "--test-reporter=spec", file], {
+    const child = spawn(process.execPath, ["--test", "--test-reporter=spec", file], {
       cwd: WEB, env, stdio: ["ignore", "pipe", "pipe"],
     });
     let out = "";

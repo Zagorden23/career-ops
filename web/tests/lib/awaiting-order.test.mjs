@@ -12,7 +12,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { pickAwaitingDecision, groupAwaiting } from "../../src/lib/home/awaiting.mjs";
 
-// The real parser is lib/format.ts's scoreNum, which a .mjs test cannot import.
+// The real parser is lib/format.js's scoreNum, which a .mjs test cannot import.
 // This stub must stay behaviourally identical for the cases below: a leading
 // number wins, anything unparseable is NaN.
 const scoreOf = (s) => {

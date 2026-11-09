@@ -1,4 +1,4 @@
-// Guards the child-process snippet in src/lib/core/pipeline.ts that calls the
+// Guards the child-process snippet in src/lib/core/pipeline.js that calls the
 // core's canonical writers (appendToPipeline, appendToScanHistory from scan.mjs).
 //
 // Both writers are async and both take the shared pipeline lock. The snippet
@@ -8,8 +8,8 @@
 // synchronous try/catch does not see the rejection either, so a failed write is
 // reported as a success. Nothing downstream retries.
 //
-// pipeline.ts is TypeScript and the snippet is a template string, so it cannot
-// be imported and exercised here — this reads the source and asserts the shape
+// The snippet in pipeline.js is a template string run in a child process, so it
+// cannot be imported and exercised here — this reads the source and asserts the shape
 // instead. Same approach as tests/states-alias-coverage.test.mjs: the extractor
 // self-checks, so an edit that renames the writers fails loudly rather than
 // silently matching nothing.
@@ -23,7 +23,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "lib", "core", "pipeline.ts");
+const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "lib", "core", "pipeline.js");
 const src = readFileSync(SRC, "utf8");
 
 // The async writers scan.mjs exports and this snippet drives.

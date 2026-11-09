@@ -1,4 +1,4 @@
-// Guards atomicWrite() in src/lib/core/safe-write.ts — "THE one place every
+// Guards atomicWrite() in src/lib/core/safe-write.js — "THE one place every
 // user-layer write goes through", per its own header.
 //
 // It writes a temp file next to the destination and renames it into place. The
@@ -19,9 +19,8 @@
 //   1. the rename is inside a try whose catch removes the temp file, and
 //   2. the error is rethrown, so a failed write is never reported as success.
 //
-// safe-write.ts is TypeScript and cannot be imported by node --test, so this
-// reads the source and asserts the shape — the approach core-writer-await.test.mjs
-// already uses for pipeline.ts. The extractor self-checks, so a rename of the
+// This reads safe-write.js's source and asserts the shape — the approach core-writer-await.test.mjs
+// already uses for pipeline.js. The extractor self-checks, so a rename of the
 // function fails loudly rather than silently matching nothing.
 //
 // Run (from web/, as `npm test` does):  node --test tests/lib/safe-write-temp-cleanup.test.mjs
@@ -33,7 +32,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "lib", "core", "safe-write.ts");
+const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "lib", "core", "safe-write.js");
 const src = readFileSync(SRC, "utf8");
 
 /** The body of `export function atomicWrite(...)`, brace-matched. */
@@ -100,7 +99,7 @@ test("a cleanup failure cannot replace the error the caller needs", () => {
 });
 
 test("the temp file is named in the shape .gitignore actually covers", () => {
-  // Both intermediate shapes safe-write.ts produces have to stay unstageable,
+  // Both intermediate shapes safe-write.js produces have to stay unstageable,
   // which is what tests/user-layer-gitignored.test.mjs probes. The name is
   // asserted here so the two files cannot drift apart silently: a new shape
   // introduced here without a matching rule there is a PII leak into `git add .`.

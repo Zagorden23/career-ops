@@ -7,14 +7,12 @@
 // Mirrors the source path (tests/lib/core/ for src/lib/core/), following
 // tests/lib/status-alias.test.mjs.
 //
-// The score parser under test is the real one from lib/format.ts, reached
+// The score parser under test is the real one from lib/format.js, reached
 // through tests/helpers/web-ts-alias-loader.mjs. This suite exists partly
 // because a second parser in the sort module drifted from the real thing when
 // the tracker's "4.2/5" cells met it (#4333), so a local stub would not have
-// caught that. Node type-strips the .ts on import; the helper only resolves the
-// "@/…" specifier format.ts itself uses. Where the local Node cannot strip
-// types (on by default only from 22.18), the cases that need the real parser
-// skip, as apply-planner-fencing.test.mjs does for the same reason.
+// caught that. The helper only resolves the "@/…" specifier format.js itself
+// uses; the module is plain JavaScript, so it loads on every supported Node.
 //
 // Run (from web/, as `npm test` does):  node --test tests/lib/core/pipeline-sort.test.mjs
 
@@ -23,14 +21,9 @@ import assert from 'node:assert/strict';
 
 import '../../helpers/web-ts-alias-loader.mjs';
 
-const tsSkipReason = () => (process.features?.typescript
-  ? false
-  : 'this Node cannot import a .ts module (type stripping is on by default only from 22.18)');
-const skipTs = tsSkipReason();
-
 // Dynamic imports on purpose: a static specifier resolves before the loader
-// hook above is installed, so format.ts would fail as an unresolved "@/lib".
-const { scoreNum } = skipTs ? { scoreNum: null } : await import('../../../src/lib/format.ts');
+// hook above is installed, so format.js would fail as an unresolved "@/lib".
+const { scoreNum } = await import('../../../src/lib/format.js');
 const { sortRows } = await import('../../../src/lib/core/pipeline-sort.mjs');
 
 /** A tracker row, with only the fields these tests care about. */
@@ -92,7 +85,7 @@ test('the tie-break applies to every column, not just date', () => {
   assert.deepEqual(names(sortRows(rows, { key: 'company', dir: 1 }, scoreNum)), ['Role 1', 'Role 2', 'Role 3']);
 });
 
-test('score ordering is unchanged, and ties break the same way', { skip: skipTs }, () => {
+test('score ordering is unchanged, and ties break the same way', () => {
   const rows = [
     row(1, '2026-09-18', { score: '8' }),
     row(3, '2026-09-18', { score: '9' }),
@@ -101,7 +94,7 @@ test('score ordering is unchanged, and ties break the same way', { skip: skipTs 
   assert.deepEqual(names(sortRows(rows, { key: 'score', dir: -1 }, scoreNum)), ['Role 3', 'Role 2', 'Role 1']);
 });
 
-test('a non-numeric score sorts last rather than as zero', { skip: skipTs }, () => {
+test('a non-numeric score sorts last rather than as zero', () => {
   const rows = [row(1, '2026-09-18', { score: '' }), row(2, '2026-09-18', { score: '7' })];
   assert.deepEqual(names(sortRows(rows, { key: 'score', dir: -1 }, scoreNum)), ['Role 2', 'Role 1']);
   assert.deepEqual(names(sortRows(rows, { key: 'score', dir: 1 }, scoreNum)), ['Role 1', 'Role 2']);
@@ -110,7 +103,7 @@ test('a non-numeric score sorts last rather than as zero', { skip: skipTs }, () 
 // The regression from #4333: the tracker stores scores as "4.2/5", and a
 // Number() of that cell is NaN, so with the user's real data the score
 // comparison never saw a number at all.
-test('a real tracker score, X.X/5, orders and breaks ties', { skip: skipTs }, () => {
+test('a real tracker score, X.X/5, orders and breaks ties', () => {
   const rows = [
     row(1, '2026-09-18', { score: '3.0/5' }),
     row(3, '2026-09-18', { score: '4.2/5' }),
@@ -128,7 +121,7 @@ test('the score parser is the caller\'s, since it is a parameter', () => {
   assert.deepEqual(names(sortRows(rows, { key: 'score', dir: -1 }, letters)), ['Role 1', 'Role 2']);
 });
 
-test('two unusable scores reach the row-number tie-break, both directions', { skip: skipTs }, () => {
+test('two unusable scores reach the row-number tie-break, both directions', () => {
   // Both scores are unusable, so both rank below every real score and the two
   // are equal to each other. The comparison must say so rather than subtract:
   // -Infinity minus -Infinity is NaN, which is not a "less than", and the
@@ -189,7 +182,7 @@ test('the tracker column compares numerically, and follows the direction', () =>
   assert.deepEqual(names(sortRows(rows, { key: 'tracker', dir: 1 }, scoreNum)), ['Role 1', 'Role 2', 'Role 10']);
 });
 
-test('scoreNum reports unusable cells as NaN, never as 0', { skip: skipTs }, () => {
+test('scoreNum reports unusable cells as NaN, never as 0', () => {
   for (const v of ['', 'abc', 'N/A']) assert.ok(Number.isNaN(scoreNum(v)), String(v));
   assert.equal(scoreNum('7'), 7);
   assert.equal(scoreNum('4.2/5'), 4.2);

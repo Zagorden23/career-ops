@@ -175,7 +175,7 @@ test("a spawn failure is a short error and does not echo the thrown text", async
 });
 
 test("the reveal route asks locateTailoredPdf and does not read a client path", () => {
-  const src = fs.readFileSync(new URL("../../src/app/api/cv-reveal/route.ts", import.meta.url), "utf8");
+  const src = fs.readFileSync(new URL("../../src/app/api/cv-reveal/route.js", import.meta.url), "utf8");
   assert.match(src, /locateTailoredPdf/);
   assert.match(src, /revealCvRequest/);
   assert.doesNotMatch(src, /searchParams\.get\("file"\)/);

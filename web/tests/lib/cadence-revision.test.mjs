@@ -15,7 +15,7 @@ import path from "node:path";
 import * as yaml from "js-yaml";
 import "../helpers/web-ts-alias-loader.mjs";
 
-const { GET, POST } = await import("../../src/app/api/followups/cadence/route.ts");
+const { GET, POST } = await import("../../src/app/api/followups/cadence/route.js");
 
 const PROFILE = `candidate:
   full_name: Avery Quinn

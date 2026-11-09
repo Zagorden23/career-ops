@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
-import { atomicWriteWithBackup } from "../../src/lib/core/safe-write.ts";
+import { atomicWriteWithBackup } from "../../src/lib/core/safe-write.js";
 
 function fixture(t, content = "ORIGINAL\n") {
   const dir = fs.mkdtempSync(path.join(tmpdir(), "web-backup-failure-"));

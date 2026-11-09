@@ -148,6 +148,6 @@ test("checklist prereq keys match the doctor list", () => {
 });
 
 test("first-run home renders the compact checklist", () => {
-  const home = readFileSync(join(root, "src/components/home/first-run-home.tsx"), "utf8");
+  const home = readFileSync(join(root, "src/components/home/first-run-home.jsx"), "utf8");
   assert.match(home, /<OnboardingProgress compact/);
 });

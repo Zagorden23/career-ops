@@ -6,7 +6,7 @@
 // Repro (Fri 2026-10-16 dogfood, Jordan Rivera 240 rows): each of 6 sample rows
 // had focusable=[checkbox, a, a, a, button].
 //
-// Run: node --experimental-strip-types --test tests/lib/pipeline-row-tabstops.test.mjs
+// Run: node --test tests/lib/pipeline-row-tabstops.test.mjs
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -15,7 +15,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const src = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "../../src/components/pipeline-view.tsx"),
+  join(dirname(fileURLToPath(import.meta.url)), "../../src/components/pipeline-view.jsx"),
   "utf8",
 );
 

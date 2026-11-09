@@ -33,7 +33,7 @@ import { join, relative } from 'path';
 
 console.log('\njs-yaml must never be imported via its (nonexistent) default export');
 
-const EXTS = ['.mjs', '.js', '.ts', '.tsx'];
+const EXTS = ['.mjs', '.js', '.jsx', '.ts', '.tsx'];
 
 /** @returns {string[]} every tracked source file in the repo. */
 function sourceFiles() {

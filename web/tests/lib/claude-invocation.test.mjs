@@ -1,7 +1,7 @@
 // Tests for the headless claude invocation — per-kind tool scopes and argv (#2185).
 //
 // These assert on exported VALUES and on the built command line, never on
-// route.ts's source text — claude-invocation.mjs's header lists the five ways
+// route.js's source text — claude-invocation.mjs's header lists the five ways
 // source-text versions of this guard were defeated. Value assertions cannot rot
 // that way, so each case below pins a capability rather than a spelling.
 //

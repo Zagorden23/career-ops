@@ -1,13 +1,13 @@
 /**
  * apply-cv-resolver.test.mjs — regression tests for resolveTailoredCv()
- * (web/src/lib/apply/cv.ts), the resolver behind the apply flow's tailored-CV
+ * (web/src/lib/apply/cv.js), the resolver behind the apply flow's tailored-CV
  * upload.
  *
  * Before PR #2156's CodeRabbit fixups, this resolver had a loose "first
  * token" fallback that let a multi-word company match a cv-*.pdf that was
  * never tailored for it, and it hand-rolled its own copy of the matching
  * regex that could drift from the twin resolver in
- * web/src/app/api/cv-pdf/route.ts. Both now import the SAME contract from
+ * web/src/app/api/cv-pdf/route.js. Both now import the SAME contract from
  * web/src/lib/apply/cv-match.mjs — see that file's header comment.
  *
  * Lives under web/tests/ so the web CI collects it and the core runner never
@@ -15,9 +15,8 @@
  * registration, and no core-only-install skip guard, because web/ is always
  * present when this suite runs.
  *
- * resolveTailoredCv() is TypeScript that reaches web/src/lib/career-ops via
- * the `@/` path alias (Next's tsconfig paths). Node 22 type-strips .ts on
- * import, but it does NOT understand that alias — `npm test` here is plain
+ * resolveTailoredCv() reaches web/src/lib/career-ops via the `@/` path alias
+ * (Next's jsconfig paths). Node does NOT understand that alias — `npm test` here is plain
  * `node --test`, with no webpack/SWC in the loop. The tiny inline loader
  * below teaches node:module's resolution hook to resolve `@/*` to web/src/*
  * (with extension probing) for the lifetime of this process. Test-only, no
@@ -35,7 +34,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { register } from 'node:module';
 
 const WEB_SRC = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src');
-const ALIAS_EXTS = ['.ts', '.tsx', '.mjs', '.js', '.mts'];
+const ALIAS_EXTS = ['.js', '.jsx', '.mjs'];
 const loaderSrc = [
   "import { existsSync } from 'node:fs';",
   "import path from 'node:path';",
@@ -59,14 +58,14 @@ const loaderSrc = [
 ].join('\n');
 register('data:text/javascript,' + encodeURIComponent(loaderSrc), pathToFileURL(WEB_SRC + '/'));
 
-const { resolveTailoredCv } = await import('../../src/lib/apply/cv.ts');
+const { resolveTailoredCv } = await import('../../src/lib/apply/cv.js');
 const { sortNewestFirst } = await import('../../src/lib/apply/cv-match.mjs');
-const { findReportFile } = await import('../../src/lib/career-ops.ts');
+const { findReportFile } = await import('../../src/lib/career-ops.js');
 const { resolvePdfPaths } = await import('../../src/lib/pdf-paths.mjs');
 
 // Provision a throwaway career-ops root with an output/ dir, redirected via
-// the same CAREER_OPS_ROOT override career-ops.ts's careerOpsRoot() reads
-// (see web/src/lib/career-ops.ts) — no monkeypatching fs needed.
+// the same CAREER_OPS_ROOT override career-ops.js's careerOpsRoot() reads
+// (see web/src/lib/career-ops.js) — no monkeypatching fs needed.
 async function withFixture(files, fn) {
   const root = mkdtempSync(join(tmpdir(), 'cv-resolver-'));
   const outputDir = join(root, 'output');
@@ -83,7 +82,7 @@ async function withFixture(files, fn) {
   const prevCode = process.env.CAREER_OPS_CODE_ROOT;
   process.env.CAREER_OPS_ROOT = root;
   // The stub tracker-utils.mjs below stands in for the code checkout, where
-  // pdf-index.ts loads it from; the temp dir is both roots here.
+  // pdf-index.js loads it from; the temp dir is both roots here.
   process.env.CAREER_OPS_CODE_ROOT = root;
   try {
     return await fn(outputDir);

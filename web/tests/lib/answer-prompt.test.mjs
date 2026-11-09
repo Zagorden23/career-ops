@@ -1,6 +1,6 @@
 // buildAnswerPrompt is the instruction the read-only planner receives before it
 // drafts an answer for every field on a real application form
-// (apply/prefill/route.ts). Factored into its own .mjs for the same reason
+// (apply/prefill/route.js). Factored into its own .mjs for the same reason
 // extract-json-object.mjs was: no @/ alias, no Node-only deps, so it can be
 // exercised directly here. It spent its life inline in a ReadableStream's
 // start(), which is why none of this was pinned.

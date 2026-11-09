@@ -9,7 +9,7 @@ test("theme constants keep the persisted contract stable", () => {
 });
 
 test("the literal bootstrap script stays pinned to the shared theme contract", async () => {
-  const layoutSource = await readFile(new URL("../../src/app/layout.tsx", import.meta.url), "utf8");
+  const layoutSource = await readFile(new URL("../../src/app/layout.jsx", import.meta.url), "utf8");
   const script = layoutSource.match(/const THEME_SCRIPT = `([^`]*)`;/)?.[1];
 
   assert.ok(script, "layout must define a literal THEME_SCRIPT");

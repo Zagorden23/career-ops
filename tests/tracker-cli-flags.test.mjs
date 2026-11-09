@@ -104,7 +104,7 @@ for (const typo of ['--dry_run', '--dryRun', '-dry-run', '--dry-run=true']) {
   cleanup(sb);
 }
 
-// ── Test 3: web/src/app/api/tracker/delete/route.ts's exact argv (the
+// ── Test 3: web/src/app/api/tracker/delete/route.js's exact argv (the
 //    web-core-argv-contract shape) must keep working unchanged. ──
 {
   const sb = makeSandbox();

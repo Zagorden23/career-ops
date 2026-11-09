@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { atomicWriteWithBackup } from "../../src/lib/core/safe-write.ts";
+import { atomicWriteWithBackup } from "../../src/lib/core/safe-write.js";
 import { coercePersonalization, renderSection, SECTIONS } from "../../src/lib/personalization.mjs";
 import * as core from "../../../lib/personalization.mjs";
 const { scanHeadings, sectionState } = core;

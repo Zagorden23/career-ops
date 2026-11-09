@@ -1,4 +1,4 @@
-// Guards the ReadableStream in src/app/api/apply/drive/route.ts (issue #3966).
+// Guards the ReadableStream in src/app/api/apply/drive/route.js (issue #3966).
 //
 // The stream's `start(controller)` wraps the whole drive in try/catch/finally
 // and closes the controller in the `finally`. Two success paths inside the
@@ -12,7 +12,7 @@
 // through the `finally` alone and was fine -- which is why it only showed up
 // once the agent actually reached and filled a form.
 //
-// route.ts is TypeScript inside a Next.js route and its `start` closure cannot
+// route.js is a Next.js route handler and its `start` closure cannot
 // be imported and exercised here, so this reads the source and asserts the
 // shape instead. Same approach, and the same self-checking discipline, as
 // tests/lib/core-writer-await.test.mjs: every anchor this test relies on is
@@ -37,7 +37,7 @@ const SRC = join(
   "api",
   "apply",
   "drive",
-  "route.ts",
+  "route.js",
 );
 const src = readFileSync(SRC, "utf8");
 
@@ -51,7 +51,7 @@ const src = readFileSync(SRC, "utf8");
 function tryAndFinally() {
   const finallyRe = /\n(\s*)\} finally \{\n([\s\S]*?)\n\1\}\n/;
   const m = src.match(finallyRe);
-  assert.ok(m, "could not find the `} finally {` block in route.ts — did the stream stop using try/finally?");
+  assert.ok(m, "could not find the `} finally {` block in route.js — did the stream stop using try/finally?");
   return { beforeFinally: src.slice(0, m.index), finallyBody: m[2] };
 }
 
@@ -59,9 +59,9 @@ const closeRe = /\bcontroller\s*\.\s*close\s*\(/g;
 const count = (s) => (s.match(closeRe) ?? []).length;
 
 test("self-check: the anchors this test reads still exist", () => {
-  assert.match(src, /new ReadableStream/, "route.ts no longer builds a ReadableStream");
-  assert.match(src, /async start\(controller\)/, "route.ts no longer has an `async start(controller)`");
-  assert.ok(count(src) > 0, "route.ts never closes the controller — the test would pass vacuously");
+  assert.match(src, /new ReadableStream/, "route.js no longer builds a ReadableStream");
+  assert.match(src, /async start\(controller\)/, "route.js no longer has an `async start(controller)`");
+  assert.ok(count(src) > 0, "route.js never closes the controller — the test would pass vacuously");
 });
 
 test("the controller is closed only in the finally, never on a path that returns through it", () => {

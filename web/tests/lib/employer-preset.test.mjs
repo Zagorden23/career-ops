@@ -379,7 +379,7 @@ test("filter codec round-trips preset selection and terms without changing legac
     parseExplorePatch,
     filtersToParams,
     paramsToFilters,
-  } = await import("../../src/lib/explore.ts");
+  } = await import("../../src/lib/explore.js");
   assert.equal(DEFAULT_FILTERS.preset, undefined);
   const f = parseExplorePatch({
     ...request,

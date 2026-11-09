@@ -27,8 +27,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
-const route = readFileSync(join(root, "src/app/api/apply/prefill/route.ts"), "utf8");
-const provider = readFileSync(join(root, "src/components/apply/apply-provider.tsx"), "utf8");
+const route = readFileSync(join(root, "src/app/api/apply/prefill/route.js"), "utf8");
+const provider = readFileSync(join(root, "src/components/apply/apply-provider.jsx"), "utf8");
 
 test("the prefill route hands buildAnswerPrompt the applyCvSource result", () => {
   // The call this PR exists to change. Without the argument the prompt falls
@@ -39,7 +39,7 @@ test("the prefill route hands buildAnswerPrompt the applyCvSource result", () =>
   // the value: the applyCvSource() call, or the name holding its result.
   const args = promptArgs();
   const entry = args.match(/\bcvSource\b\s*(?::([^,}]*))?/);
-  assert.ok(entry, "prefill/route.ts must pass cvSource to buildAnswerPrompt, or the planner reads master cv.md");
+  assert.ok(entry, "prefill/route.js must pass cvSource to buildAnswerPrompt, or the planner reads master cv.md");
 
   const value = (entry[1] ?? "cvSource").trim();
   if (value.includes("applyCvSource(")) return;
@@ -86,15 +86,15 @@ test("prefill and fill read the identifiers from the same two refs", () => {
   assert.match(fill, /application:\s*nRef\.current/);
 });
 
-/** The object literal buildAnswerPrompt is called with in prefill/route.ts. */
+/** The object literal buildAnswerPrompt is called with in prefill/route.js. */
 function promptArgs() {
-  return objectArg(route, "buildAnswerPrompt({", "the buildAnswerPrompt call in prefill/route.ts");
+  return objectArg(route, "buildAnswerPrompt({", "the buildAnswerPrompt call in prefill/route.js");
 }
 
 /** The JSON.stringify({...}) argument of the fetch to `path`. */
 function callBody(path) {
   const at = provider.indexOf(`"${path}"`);
-  assert.notEqual(at, -1, `no fetch to ${path} in apply-provider.tsx`);
+  assert.notEqual(at, -1, `no fetch to ${path} in apply-provider.jsx`);
   return objectArg(provider.slice(at), "JSON.stringify({", `the JSON body of the fetch to ${path}`);
 }
 

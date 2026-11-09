@@ -18,7 +18,7 @@ register(`data:text/javascript,${encodeURIComponent(`
     return nextResolve(specifier, context);
   }
 `)}`, import.meta.url);
-const { POST } = await import("../../src/app/api/run/route.ts");
+const { POST } = await import("../../src/app/api/run/route.js");
 
 for (const reason of ["missing file", "incomplete instructions"]) {
   test(`focused instruction ${reason} is logged server-side with a generic 422 response`, async t => {

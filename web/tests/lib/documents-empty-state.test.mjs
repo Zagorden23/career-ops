@@ -8,7 +8,7 @@ import { test } from "node:test";
 // never finished, and the copy did not say how a file gets there.
 
 const src = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "../../src/app/documents/page.tsx"),
+  join(dirname(fileURLToPath(import.meta.url)), "../../src/app/documents/page.jsx"),
   "utf8",
 );
 

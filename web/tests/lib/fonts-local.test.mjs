@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const fontsSource = readFileSync(new URL("../../src/lib/fonts.ts", import.meta.url), "utf8");
+const fontsSource = readFileSync(new URL("../../src/lib/fonts.js", import.meta.url), "utf8");
 const assets = [
   "../../src/assets/fonts/inter/Inter-Latin-Variable.woff2",
   "../../src/assets/fonts/instrument-serif/InstrumentSerif-Latin-Regular.woff2",

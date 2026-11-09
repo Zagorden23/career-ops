@@ -16,7 +16,7 @@ import { test } from "node:test";
 
 const read = (rel) => readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../../src/components", rel), "utf8");
 
-for (const rel of ["onboarding-banner.tsx", "home/onboarding-progress.tsx"]) {
+for (const rel of ["onboarding-banner.jsx", "home/onboarding-progress.jsx"]) {
   const src = read(rel);
 
   test(`${rel} decides "has a CLI" with resolveCliId()`, () => {
@@ -28,8 +28,9 @@ for (const rel of ["onboarding-banner.tsx", "home/onboarding-progress.tsx"]) {
 
   test(`${rel} keeps the assistant action disabled until the CLI check settles`, () => {
     // While /api/clis is pending the action must neither open an assistant
-    // with no CLI to send the kickoff with nor flash the Config fallback.
-    assert.match(src, /useState<boolean \| null>\(null\)/);
+    // with no CLI to send the kickoff with nor flash the Config fallback, so
+    // the check starts unsettled (null), distinct from both true and false.
+    assert.match(src, /const \[cli, setCli\] = useState\(null\)/);
     assert.match(src, /\{cli !== false \? \(/);
     assert.match(src, /disabled=\{cli === null\}/);
   });

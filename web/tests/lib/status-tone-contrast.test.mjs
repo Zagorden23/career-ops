@@ -70,7 +70,7 @@ function contrast(a, b) {
 
 function sourceUses() {
   const uses = [];
-  for (const file of listTree(SRC, { match: /\.(tsx?|jsx?|mjs)$/ })) {
+  for (const file of listTree(SRC, { match: /\.(jsx?|mjs)$/ })) {
     readFileSync(file, "utf8").split("\n").forEach((text, i) => {
       for (const [cls, family, shade, pct] of text.matchAll(UNPREFIXED_TONE_TEXT_CLASS)) {
         if (Number(shade) < 600) continue;

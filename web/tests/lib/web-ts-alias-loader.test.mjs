@@ -2,9 +2,9 @@
  * web-ts-alias-loader.test.mjs — the resolver hook that teaches `node --test` to
  * follow the `@/…` import alias.
  *
- * web/tsconfig.json maps `"@/*" -> "./src/*"`, which webpack and SWC understand
- * natively and Node does not. Node 22 type-strips `.ts` on import, so the only
- * thing standing between `node --test` and a TS module under web/src is
+ * web/jsconfig.json maps `"@/*" -> "./src/*"`, which webpack and SWC understand
+ * natively and Node does not. The modules under web/src are plain JavaScript, so
+ * the only thing standing between `node --test` and one of them is
  * SPECIFIER RESOLUTION — and without it the import fails as
  * `ERR_MODULE_NOT_FOUND: Cannot find package '@/lib'`, which reads in CI exactly
  * like a test that ran and passed nothing.
@@ -34,11 +34,7 @@ const stripAnsi = (str) => (str || "").replace(/\x1B\[[0-9;]*[a-zA-Z]/g, "");
 function run(src, flags = [], cwd = WEB) {
   const childEnv = { ...process.env, NODE_DISABLE_COLORS: "1", NO_COLOR: "1" };
   delete childEnv.FORCE_COLOR;
-  const inheritStrip = process.features?.typescript
-    && !flags.includes("--experimental-strip-types")
-    && !flags.includes("--no-experimental-strip-types");
   const argv = [
-    ...(inheritStrip ? ["--experimental-strip-types"] : []),
     ...flags,
     "--input-type=module",
     "-e",
@@ -53,56 +49,34 @@ function run(src, flags = [], cwd = WEB) {
   }
 }
 
-// web/package.json allows Node 22.13+ (the project floor), but four cases
-// below reach a .ts module, and that needs type stripping on top: added behind
-// --experimental-strip-types in 22.6, on by default only from 22.18. On
-// 22.13-22.17 without the flag the child dies with
-// ERR_UNKNOWN_FILE_EXTENSION before resolve() is ever consulted, so those four
-// would fail for a reason that has nothing to do with the hook they test.
-//
-// Skip rather than raise the floor: web/'s engines governs the Next.js app, not
-// just this suite, and apply-planner-fencing.test.mjs and
-// apply-agent-interpret-fencing.test.mjs already take exactly this stance for
-// the same reason. run() forwards the flag when this process already has it.
-// CI runs 24.
-//
-// The gate is defined ONCE, as a function, because the positive control at the
-// bottom of this file serializes this exact source into a child process. A copy
-// of the predicate re-typed inside that child would agree with itself forever,
-// however far the gate here drifted from the behaviour it stands for.
-const tsSkipReason = () => (process.features?.typescript
-  ? false
-  : "this Node cannot import a .ts module (type stripping is on by default only from 22.18)");
-const skipTs = tsSkipReason();
-
 const IMPORT_LOADER = `await import(${JSON.stringify(LOADER)});`;
 
-test("CONTROL: without the loader, an @/ specifier fails to resolve", { skip: skipTs }, () => {
+test("CONTROL: without the loader, an @/ specifier fails to resolve", () => {
   // If this ever passes, every other assertion in this file is vacuous — the
   // alias would already be resolving and the hook would be doing nothing.
-  const r = run(`await import("./src/lib/apply/cv.ts"); console.log("LOADED");`);
+  const r = run(`await import("./src/lib/apply/cv.js"); console.log("LOADED");`);
   assert.equal(r.ok, false, "an @/-importing module must NOT load without the hook");
   assert.match(r.err, /ERR_MODULE_NOT_FOUND/, "expected the alias to be the reason it failed");
   assert.match(r.err, /@\/lib/, "expected the unresolved specifier to be the @/ alias");
 });
 
-test("with the loader, a TS module reached through @/ loads", { skip: skipTs }, () => {
+test("with the loader, a module reached through @/ loads", () => {
   const r = run(`${IMPORT_LOADER}
-    const m = await import("./src/lib/apply/cv.ts");
+    const m = await import("./src/lib/apply/cv.js");
     console.log(typeof m.resolveTailoredCv);`);
   assert.equal(r.ok, true, `expected the aliased import to succeed:\n${r.err}`);
   assert.equal(r.out, "function");
 });
 
-test("an extensionless @/ specifier resolves .ts", { skip: skipTs }, () => {
+test("an extensionless @/ specifier resolves .js", () => {
   const r = run(`${IMPORT_LOADER}
     const m = await import("@/lib/career-ops");
     console.log(typeof m.careerOpsRoot);`);
-  assert.equal(r.ok, true, `expected @/lib/career-ops to resolve to the .ts file:\n${r.err}`);
+  assert.equal(r.ok, true, `expected @/lib/career-ops to resolve to the .js file:\n${r.err}`);
   assert.equal(r.out, "function");
 });
 
-test("the @/ alias resolves from a cwd outside web/", { skip: skipTs }, () => {
+test("the @/ alias resolves from a cwd outside web/", () => {
   // The hook anchors web/src to its own file URL, and the comment there says why:
   // `npm test` runs from web/, a root-level `node --test web/tests/…` runs from the
   // repo root. Every other case here runs the child from web/, where a cwd anchor
@@ -136,7 +110,7 @@ test("a non-@/ specifier is left to Node", () => {
   assert.equal(r.out, "function function");
 });
 
-test("importing the loader twice still resolves, and leaves its flag set", { skip: skipTs }, () => {
+test("importing the loader twice still resolves, and leaves its flag set", () => {
   // Named for what it measures. It is NOT evidence that the hook registered
   // once: ESM caches this module, so the second import never re-runs its body,
   // and the flag it reads is set in this realm whether or not the loader realm
@@ -166,26 +140,19 @@ test("the hook is injected as a file:// URL, not a bare absolute path", () => {
   );
 });
 
-test("the .ts skip gate keys on the signal that actually predicts the failure", { skip: skipTs }, () => {
-  // POSITIVE CONTROL for skipTs. Without it the gate is an assumption: the four
-  // cases above would keep passing here and nothing would notice if the
-  // predicate drifted away from the behaviour it stands for.
-  //
-  // --no-experimental-strip-types makes this Node behave like 22.0-22.17, so
-  // both halves are measured on one runtime rather than argued from version
-  // numbers. Skipped on a Node that has no stripping to turn off — there the
-  // condition is not simulated, it is the live one.
-  const OFF = ["--no-experimental-strip-types"];
-
-  // The gate ITSELF runs in the child, serialized from its one definition above,
-  // so a predicate that stops tracking type stripping fails right here.
-  const gate = run(`console.log(JSON.stringify((${tsSkipReason})()));`, OFF);
-  assert.equal(gate.ok, true, `expected the probe to run:\n${gate.err}`);
-  assert.notEqual(gate.out, "false", `the gate must skip where types cannot be stripped; got ${gate.out}`);
-
-  const r = run(`${IMPORT_LOADER} await import("@/lib/career-ops");`, OFF);
-  assert.equal(r.ok, false, "a .ts import must fail where types cannot be stripped");
-  assert.match(r.err, /ERR_UNKNOWN_FILE_EXTENSION/, "and fail for that reason, before resolve() matters");
+test("an aliased module loads with type stripping turned off", () => {
+  // POSITIVE CONTROL for the migration to plain JavaScript. Every module the
+  // cases above reach used to be TypeScript and needed Node's type stripping on
+  // top of this hook. Nothing under web/src needs it now, so an aliased import
+  // must load on a Node that cannot strip types at all. Where this Node can,
+  // --no-experimental-strip-types turns it off so the condition is measured
+  // rather than assumed; where it cannot, the live runtime already is that case.
+  const OFF = process.features?.typescript ? ["--no-experimental-strip-types"] : [];
+  const r = run(`${IMPORT_LOADER}
+    const m = await import("@/lib/career-ops");
+    console.log(typeof m.careerOpsRoot);`, OFF);
+  assert.equal(r.ok, true, `an aliased module must load without type stripping:\n${r.err}`);
+  assert.equal(r.out, "function");
 });
 
 test("an unresolvable @/ specifier still reports the alias it could not find", () => {

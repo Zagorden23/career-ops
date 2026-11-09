@@ -10,7 +10,7 @@ const loaderSrc = [
   "import path from 'node:path';",
   "import { pathToFileURL } from 'node:url';",
   `const WEB_SRC = ${JSON.stringify(WEB_SRC)};`,
-  "const EXTS = ['.ts', '.tsx', '.mjs', '.js', '.mts'];",
+  "const EXTS = ['.js', '.jsx', '.mjs'];",
   "export async function resolve(specifier, context, nextResolve) {",
   "  if (specifier.startsWith('@/')) {",
   "    const base = path.join(WEB_SRC, specifier.slice(2));",
@@ -22,7 +22,7 @@ const loaderSrc = [
 ].join("\n");
 register("data:text/javascript," + encodeURIComponent(loaderSrc), pathToFileURL(WEB_SRC + "/"));
 
-const { enrichAnalyticsApplication } = await import("../../src/lib/analytics-data.ts");
+const { enrichAnalyticsApplication } = await import("../../src/lib/analytics-data.js");
 
 const application = (notes, role = "AI Engineer") => ({
   n: "1",

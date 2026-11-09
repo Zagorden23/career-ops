@@ -520,7 +520,7 @@ test("each notice is detectable by the UI and names the runtime", () => {
 });
 
 test("fencingReport answers for the runtimes the routes actually ask about", () => {
-  // Given the routes call it for every entry in clis.ts
+  // Given the routes call it for every entry in clis.js
   for (const cliId of ["gemini", "opencode", "copilot", "qwen", "antigravity", "grok"]) {
     // Then each unverified runtime reports honestly rather than defaulting to a
     // reassuring answer.

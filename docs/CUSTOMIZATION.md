@@ -87,7 +87,7 @@ A new state is a change to career-ops itself, so open an issue first (see [CONTR
 
 1. `templates/states.yml`: the entry (`id`, `label`, `aliases`, `description`, `dashboard_group`, plus `terminal: true` for an end state). A non-terminal state's position in the list is its lifecycle order.
 2. Go dashboard: `NormalizeStatus` and `isCanonicalStatusName` in `dashboard/internal/data/career.go`, the pipeline groups, tabs and colors in `dashboard/internal/ui/screens/pipeline.go`, and the labels in `dashboard/internal/i18n/catalog.go`.
-3. Web app: `web/src/lib/status-alias.mjs`, the status lists in `web/src/lib/format.ts`, `web/src/app/actions/registry.ts` and `web/src/lib/pipeline-navigation.mjs`, and the state lists in the assistant prompt in `web/src/app/api/assistant/route.ts`.
+3. Web app: `web/src/lib/status-alias.mjs`, the status lists in `web/src/lib/format.js`, `web/src/app/actions/registry.js` and `web/src/lib/pipeline-navigation.mjs`, and the state lists in the assistant prompt in `web/src/app/api/assistant/route.js`.
 4. Funnel: where the state sits in the funnel and whether it counts as active, in `funnel-stages.mjs`, `stats.mjs`, `web/src/lib/analytics-metrics.mjs` and the dashboard's funnel in `career.go`.
 5. Prose that lists the states: the Canonical States table in `AGENTS.md`, `modes/tracker.md`, `batch/batch-prompt.md` and `templates/README.md`. `git grep` for an existing label such as `Assessment` finds the rest.
 6. Tests that classify every state: `tests/analytics-state-contract.test.mjs` and `tests/dedup-tracker-status-aliases.test.mjs`.

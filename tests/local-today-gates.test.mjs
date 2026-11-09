@@ -397,7 +397,7 @@ test('the call scanner sees code and only code', () => {
   assert.deepEqual(call('// appendToScanHistory(o, utc)\nawait appendToScanHistory(o, localToday());'), ['localToday()']);
   assert.deepEqual(call('const s = `appendToScanHistory(o, utc)`;'), []);
 
-  // …but a substitution is executed, and pipeline.ts drives these writers from
+  // …but a substitution is executed, and pipeline.js drives these writers from
   // exactly such a snippet.
   assert.deepEqual(call('const s = `${appendToScanHistory(o, utcDate)}`;'), ['utcDate']);
   assert.deepEqual(call('const s = `${appendToScanHistory(o, {a:{b:1}} ? d : d)}`;'), ['{a:{b:1}} ? d : d']);

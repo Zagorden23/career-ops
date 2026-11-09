@@ -12,7 +12,7 @@
  * CAREER_OPS_PROFILE; a scan guard in the root suite fails when a tracked file
  * under web/src builds the path by hand. The prompts the web sends to a model
  * (web/src/lib/apply/answer-prompt.mjs, web/src/lib/run-prompts.mjs,
- * web/src/app/api/assistant/route.ts) name the profile through profileRef() and
+ * web/src/app/api/assistant/route.js) name the profile through profileRef() and
  * profileNote() below, so an override reaches the agent as the path it must read.
  *
  * `CAREER_OPS_PROFILE` names the profile file directly. Unlike core's

@@ -45,10 +45,10 @@ test("timedOutMessage names the source, the deadline and the fix", () => {
 });
 
 // Wiring — source-reading, in the style of config-form-persist-wiring.test.mjs
-// (scan.ts / the provider import through the "@/..." alias).
+// (scan.js / the provider import through the "@/..." alias).
 
 test("--json discovery runs one scanner child per source", () => {
-  const src = readFileSync(join(SRC, "lib/core/scan.ts"), "utf8");
+  const src = readFileSync(join(SRC, "lib/core/scan.js"), "utf8");
   // A single child spanning every source loses every result when one source hits
   // the deadline, because --json prints only on exit.
   assert.match(src, /ats\.map\(\(a\)\s*=>\s*runScanner\(\[a\],\s*true,/);
@@ -57,17 +57,17 @@ test("--json discovery runs one scanner child per source", () => {
 });
 
 test("the Explore provider treats incomplete sources as a partial result", () => {
-  const src = readFileSync(join(SRC, "components/explore/explore-provider.tsx"), "utf8");
+  const src = readFileSync(join(SRC, "components/explore/explore-provider.jsx"), "utf8");
   const summary = src.slice(src.indexOf('case "summary"'), src.indexOf('case "error"'));
   assert.match(summary, /ev\.incomplete\?\.length/);
   assert.match(summary, /if \(ev\.unreachable > 0 \|\| datasetIssue\) setPartial\(true\)/);
 });
 
 test("a scan that ends in an error keeps its results as partial and shows the reason", () => {
-  const src = readFileSync(join(SRC, "components/explore/explore-provider.tsx"), "utf8");
+  const src = readFileSync(join(SRC, "components/explore/explore-provider.jsx"), "utf8");
   const start = src.indexOf("if (acc.length > 0) {");
   const withResults = src.slice(start, src.indexOf("} else if (sawError) {", start));
   assert.match(withResults, /if \(sawError\) \{\s*setPartial\(true\);\s*setError\(sawError\);/);
-  const list = readFileSync(join(SRC, "components/explore/results-list.tsx"), "utf8");
+  const list = readFileSync(join(SRC, "components/explore/results-list.jsx"), "utf8");
   assert.match(list, /!isAi && error && </);
 });

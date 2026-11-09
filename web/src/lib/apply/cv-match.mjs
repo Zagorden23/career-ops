@@ -1,9 +1,9 @@
 /**
  * cv-match.mjs — the ONE matching contract shared by every resolver that has
  * to decide which file in output/ is "the" tailored artifact for an offer:
- * `web/src/lib/apply/cv.ts` (resolveTailoredCv, used by the apply flow),
- * `web/src/app/api/cv-pdf/route.ts` (the "View tailored CV" link), and
- * `web/src/lib/apply/cover.ts` (resolveTailoredCover, behind "View cover" and
+ * `web/src/lib/apply/cv.js` (resolveTailoredCv, used by the apply flow),
+ * `web/src/app/api/cv-pdf/route.js` (the "View tailored CV" link), and
+ * `web/src/lib/apply/cover.js` (resolveTailoredCover, behind "View cover" and
  * /api/cover-pdf).
  *
  * Plain .mjs (same pattern as tracker-table.mjs) so it has zero TS/`@/`-alias

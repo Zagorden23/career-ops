@@ -144,7 +144,7 @@ console.log('\nprofile path — no hand-built path under web/src');
 
 const BY_HAND = [
   /["']config["']\s*,\s*["']profile\.yml["']/,   // path.join(root, "config", "profile.yml")
-  /\bloadYaml\(\s*["']config\/profile\.yml["']/, // portals.ts's relative loader
+  /\bloadYaml\(\s*["']config\/profile\.yml["']/, // portals.js's relative loader
   // A whole-string literal "config/profile.yml" passed to an existence check, a
   // read or a path builder, e.g. existsSync(join(root, "config/profile.yml")) or
   // has("config/profile.yml"). UI labels, prompts and error text are not calls,
@@ -186,7 +186,7 @@ if (existsSync(join(ROOT, 'web', 'src'))) {
   try {
     tracked = execFileSync('git', ['ls-files', '-z', '--', 'web/src'], { cwd: ROOT, encoding: 'utf8' })
       .split('\0')
-      .filter((f) => /\.(ts|tsx|mjs|js)$/.test(f));
+      .filter((f) => /\.(mjs|jsx?)$/.test(f));
   } catch (err) {
     fail(`could not list tracked web/src files: ${err.message}`);
   }

@@ -20,6 +20,9 @@ permissions:
 
 jobs:
   web:
+    # The app is plain JavaScript now and this job runs no typecheck, but the
+    # name is what pr-triage's policy (.github/scripts/triage.bundle.mjs,
+    # informativeChecks) matches on, so it stays as it was.
     name: web typecheck + build
     runs-on: ubuntu-latest
     defaults:
@@ -48,7 +51,6 @@ jobs:
       # place an advisory gets seen before it ships.
       - run: npm audit --audit-level=high
       - run: npm test
-      - run: npx tsc --noEmit
       - run: npm run build
       # The tests/lib/*.browser.test.mjs suites skip in `npm test` above: each
       # needs a running server's URL in an env var (#5764). This starts the

@@ -67,7 +67,7 @@ test("flush writes a pending list now, and is a no-op otherwise", () => {
 });
 
 test("the jobs provider stores through the persister and flushes on pagehide", () => {
-  const src = readFileSync(join(webRoot, "src/components/jobs/job-store.tsx"), "utf8");
+  const src = readFileSync(join(webRoot, "src/components/jobs/job-store.jsx"), "utf8");
   assert.match(src, /createJobsPersister(<[^>]*>)?\(/);
   assert.match(src, /addEventListener\("pagehide"/);
   // One direct write is left: the persister's own write callback.

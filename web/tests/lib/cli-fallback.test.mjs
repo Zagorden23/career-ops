@@ -2,13 +2,13 @@
 //
 // #4019 re-checks the saved id on the client before a Run. Every other surface
 // (Explore, CV ingest, Apply, the Assistant) sends it unchecked, and all of them
-// resolve it through web/src/lib/clis.ts on the server, so the fallback lives
+// resolve it through web/src/lib/clis.js on the server, so the fallback lives
 // there: resolveCliOrFallback() applies pickUsableCli() below.
 //
 // Two halves:
 //  1. pickUsableCli() — the rule itself, imported from the REAL cli-pick.mjs.
 //  2. The routes — read as text (like clis-coverage.test.mjs), because they are
-//     TypeScript route handlers with Next imports. They must resolve through the
+//     Next.js route handlers with Next imports. They must resolve through the
 //     fallback AND run under the id it returns: fencing, capability checks and
 //     argv are keyed on cliId, and running one CLI under another's id is the
 //     mismatch #2507 is about.
@@ -54,9 +54,9 @@ const read = (rel) => readFileSync(join(API, rel), "utf8");
 
 // Routes that spawn the CLI they resolve. Each must rebind cliId to the resolved
 // spec's id before anything keyed on it runs.
-const SPAWNING_ROUTES = ["run/route.ts", "assistant/route.ts", "cv/ingest/route.ts", "explore/ai/route.ts", "apply/prefill/route.ts"];
+const SPAWNING_ROUTES = ["run/route.js", "assistant/route.js", "cv/ingest/route.js", "explore/ai/route.js", "apply/prefill/route.js"];
 // Routes that hand the id to lib/apply, which resolves it again itself.
-const PASS_THROUGH_ROUTES = ["apply/session/route.ts", "apply/drive/route.ts"];
+const PASS_THROUGH_ROUTES = ["apply/session/route.js", "apply/drive/route.js"];
 
 for (const rel of [...SPAWNING_ROUTES, ...PASS_THROUGH_ROUTES]) {
   test(`${rel} resolves the requested CLI through the fallback, not resolveCli()`, () => {
@@ -81,8 +81,8 @@ for (const rel of SPAWNING_ROUTES) {
 }
 
 // File uploads must resolve the fallback before extraction or capability checks.
-test("cv/ingest/route.ts resolves the CLI once before extracting a PDF or checking Word eligibility", () => {
-  const src = read("cv/ingest/route.ts");
+test("cv/ingest/route.js resolves the CLI once before extracting a PDF or checking Word eligibility", () => {
+  const src = read("cv/ingest/route.js");
   const calls = src.match(/resolveCliOrFallback\(/g) ?? [];
   assert.equal(calls.length, 2, "expected one call for uploads and one `??=` for pasted text");
   assert.match(src, /resolved \?\?= resolveCliOrFallback\(cliId\)/, "pasted text must reuse an upload's resolution, not resolve again");

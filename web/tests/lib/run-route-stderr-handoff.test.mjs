@@ -38,7 +38,7 @@ register(`data:text/javascript,${encodeURIComponent(`
     return nextResolve(specifier, context);
   }
 `)}`, import.meta.url);
-const { POST } = await import("../../src/app/api/run/route.ts");
+const { POST } = await import("../../src/app/api/run/route.js");
 
 const AGY_LINE =
   'jetski: no output produced — a tool required the "command" permission that headless mode cannot prompt for, so it was auto-denied. Add an allow-rule under permissions.allow in settings.json.\n';

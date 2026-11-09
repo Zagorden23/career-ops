@@ -87,7 +87,7 @@ test("relative configured store paths resolve against the supplied career-ops ro
 });
 
 test("scheduled-job CRUD uses the shared store resolver", () => {
-  const source = fs.readFileSync(new URL("../../src/lib/scheduled-jobs.ts", import.meta.url), "utf8");
+  const source = fs.readFileSync(new URL("../../src/lib/scheduled-jobs.js", import.meta.url), "utf8");
   assert.match(source, /import \{ scheduledStorePath \} from "\.\/scheduled-runner-path\.mjs"/);
   assert.match(source, /scheduledStorePath\(careerOpsRoot\(\)\)/);
 });
@@ -99,7 +99,7 @@ test("minute cadence changes clamp to the shared minimum without shrinking large
 });
 
 test("scheduled run route has a bounded SIGKILL fallback and idempotent cleanup", () => {
-  const source = fs.readFileSync(new URL("../../src/app/api/scheduled-jobs/[id]/run/route.ts", import.meta.url), "utf8");
+  const source = fs.readFileSync(new URL("../../src/app/api/scheduled-jobs/[id]/run/route.js", import.meta.url), "utf8");
   assert.match(source, /SIGKILL/);
   assert.match(source, /killTimer/);
   assert.match(source, /if \(settled\) return/);
@@ -107,7 +107,7 @@ test("scheduled run route has a bounded SIGKILL fallback and idempotent cleanup"
 });
 
 test("scheduled run route reports the runner's cause, not the first stderr line", () => {
-  const source = fs.readFileSync(new URL("../../src/app/api/scheduled-jobs/[id]/run/route.ts", import.meta.url), "utf8");
+  const source = fs.readFileSync(new URL("../../src/app/api/scheduled-jobs/[id]/run/route.js", import.meta.url), "utf8");
   assert.match(source, /stderrCause\(result\.stderr\)/);
   assert.doesNotMatch(source, /stderr\.split\([^)]*\)\.find\(Boolean\)/);
 });

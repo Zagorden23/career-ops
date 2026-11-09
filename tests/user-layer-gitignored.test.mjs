@@ -161,7 +161,7 @@ if (!line) {
   }
 }
 
-// safe-write.ts names backups like `cv.md.bak-2026-08-05T16-55-08-641Z`.
+// safe-write.js names backups like `cv.md.bak-2026-08-05T16-55-08-641Z`.
 // The old `*.bak` pattern did not match those timestamped paths, so a
 // reflexive `git add .` could stage PII sitting in the repo root.
 const timestampedBackupProbes = [
@@ -180,8 +180,8 @@ for (const path of timestampedBackupProbes) {
 
 // The backups' sibling, from the same two writers: the temp file an atomic
 // write renames into place. `.{name}.{pid}.{ts}.{uuid}.tmp` (tracker-utils.mjs
-// writeFileAtomic and web/src/lib/core/safe-write.ts atomicWrite), plus the
-// `{file}.tmp-{pid}-{uuid}` shape safe-write.ts used before they were aligned —
+// writeFileAtomic and web/src/lib/core/safe-write.js atomicWrite), plus the
+// `{file}.tmp-{pid}-{uuid}` shape safe-write.js used before they were aligned —
 // a checkout that predates the alignment can still have one lying around.
 //
 // It exists only between the write and the rename, so a passing rename leaves

@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { compareTrackerNumbers } from "../../src/lib/pipeline-sort.mjs";
 
-const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "components", "pipeline-view.tsx");
+const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "components", "pipeline-view.jsx");
 const source = readFileSync(SRC, "utf8");
 
 test("tracker identifiers sort numerically rather than lexicographically", () => {

@@ -23,10 +23,10 @@ test("reveal keeps the view query on the reveal route", () => {
 
 test("the report, the studio, and the checklist keep the view link and add download and reveal", () => {
   const root = new URL("../../src/", import.meta.url);
-  const pdf = readFileSync(new URL("./components/generate-pdf-button.tsx", root), "utf8");
-  const studio = readFileSync(new URL("./components/cv-studio/cv-studio.tsx", root), "utf8");
-  const checklist = readFileSync(new URL("./components/apply-checklist.tsx", root), "utf8");
-  const actions = readFileSync(new URL("./components/cv-pdf-file-actions.tsx", root), "utf8");
+  const pdf = readFileSync(new URL("./components/generate-pdf-button.jsx", root), "utf8");
+  const studio = readFileSync(new URL("./components/cv-studio/cv-studio.jsx", root), "utf8");
+  const checklist = readFileSync(new URL("./components/apply-checklist.jsx", root), "utf8");
+  const actions = readFileSync(new URL("./components/cv-pdf-file-actions.jsx", root), "utf8");
   for (const src of [pdf, studio, checklist]) assert.match(src, /CvPdfFileActions/);
   assert.match(actions, /Download PDF/);
   assert.match(actions, /Show in Finder/);

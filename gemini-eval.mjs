@@ -140,7 +140,7 @@ function resolveModesDirCandidate(customModesDir) {
   return customModesDir;
 }
 
-// Same recognition as resolveEvalModeFile in web/src/lib/career-ops.ts: the
+// Same recognition as resolveEvalModeFile in web/src/lib/career-ops.js: the
 // evaluation mode is the markdown file whose title states the block range it
 // produces (A-F, A-G, or A-H; the dash may be ASCII or typographic). A
 // filename allow-list goes stale whenever a market ships under a new name

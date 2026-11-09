@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { makeKnownOfferFilter, makeAiStreamParser, canon } from "../../src/lib/explore-ai.ts";
+import { makeKnownOfferFilter, makeAiStreamParser, canon } from "../../src/lib/explore-ai.js";
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const envelope = (offer) => `<<offer:${JSON.stringify(offer)}>>`;
@@ -55,10 +55,10 @@ test("the client parser sees exactly the new offer after the server filter", () 
 });
 
 test("the known-URL list is no longer served to the browser", () => {
-  assert.equal(existsSync(join(webRoot, "src/app/api/explore/ai/known/route.ts")), false, "GET /api/explore/ai/known still exists");
-  const provider = readFileSync(join(webRoot, "src/components/explore/explore-provider.tsx"), "utf8");
+  assert.equal(existsSync(join(webRoot, "src/app/api/explore/ai/known/route.js")), false, "GET /api/explore/ai/known still exists");
+  const provider = readFileSync(join(webRoot, "src/components/explore/explore-provider.jsx"), "utf8");
   assert.doesNotMatch(provider, /\/api\/explore\/ai\/known/);
-  const route = readFileSync(join(webRoot, "src/app/api/explore/ai/route.ts"), "utf8");
+  const route = readFileSync(join(webRoot, "src/app/api/explore/ai/route.js"), "utf8");
   assert.match(route, /makeKnownOfferFilter\(/);
 });
 

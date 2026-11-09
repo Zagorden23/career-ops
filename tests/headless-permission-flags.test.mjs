@@ -2,7 +2,7 @@
 // may hand a headless worker blanket approval (#2876).
 //
 // The web already has this guard (web/tests/lib/clis-permissions.test.mjs),
-// but it reads only web/src/lib/clis.ts. The root spawners are invisible to
+// but it reads only web/src/lib/clis.js. The root spawners are invisible to
 // it: batch-tailor.mjs launches the `pdf` worker with
 // --dangerously-skip-permissions, which hands back the Bash that #2172 took
 // away on the web path, and nothing went red. So the rule written in AGENTS.md
@@ -47,7 +47,7 @@ const KNOWN = new Map([
   ['web/src/lib/cli-fencing.mjs', { '--dangerously-bypass-approvals-and-sandbox': 1, '--yolo': 1, '--full-auto': 1 }],
 ]);
 
-const CODE_EXT = new Set(['.mjs', '.js', '.cjs', '.ts', '.tsx', '.sh', '.bash', '.py', '.go']);
+const CODE_EXT = new Set(['.mjs', '.js', '.jsx', '.cjs', '.ts', '.tsx', '.sh', '.bash', '.py', '.go']);
 // Never code that ships, or code whose job is to mention the flags.
 // plugins.local/ is the user's own gitignored plugin directory, not this repo's code.
 const SKIP_DIRS = new Set(['node_modules', '.git', '.next', 'tests', 'test-fixtures', 'output', 'reports', 'data', 'jds', 'plugins.local']);
@@ -88,7 +88,7 @@ const FLAG_RES = AUTO_APPROVE.map((flag) => [flag, new RegExp(`(?<![\\w-])${flag
 
 /** How many times code (not comments) names each flag — every occurrence, so
  *  a second grant on the same line counts too. A comment that names a flag
- *  to warn against it — clis.ts, salary-gap.mjs — is not a grant. */
+ *  to warn against it — clis.js, salary-gap.mjs — is not a grant. */
 function flagsIn(text) {
   const found = {};
   for (const line of text.split('\n')) {

@@ -15,7 +15,7 @@ const loader = `
   export async function resolve(specifier, context, nextResolve) {
     if (specifier.startsWith("@/")) {
       const base = path.join(${JSON.stringify(webSrc)}, specifier.slice(2));
-      for (const ext of [".ts", ".tsx", ".mjs", ".js", ""]) {
+      for (const ext of [".js", ".jsx", ".mjs", ""]) {
         if (existsSync(base + ext)) return { url: pathToFileURL(base + ext).href, shortCircuit: true };
       }
     }
@@ -25,7 +25,7 @@ const loader = `
 register(`data:text/javascript,${encodeURIComponent(loader)}`, pathToFileURL(webSrc));
 
 
-const { POST } = await import("../../src/app/api/profile/route.ts");
+const { POST } = await import("../../src/app/api/profile/route.js");
 const source = "# Original fixture comment\ncandidate:\n  full_name: Fixture Candidate\n  email: fixture@example.invalid\ncompensation:\n  currency: USD\n  target_range: 80-90\n";
 async function fixture(t, body) {
   const root = mkdtempSync(path.join(tmpdir(), "profile-input-"));

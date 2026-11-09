@@ -34,7 +34,7 @@ const WEB = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const LOADER = pathToFileURL(join(WEB, "tests", "helpers", "web-ts-alias-loader.mjs")).href;
 
 const DRIVER = `
-const { GET } = await import("@/app/api/whats-new/route.ts");
+const { GET } = await import("@/app/api/whats-new/route.js");
 const res = await GET(new Request("http://localhost/api/whats-new"));
 console.log(JSON.stringify({ status: res.status, body: await res.json() }));
 `;
@@ -55,7 +55,7 @@ function callRoute(root, env = {}) {
   writeFileSync(driver, DRIVER);
   const out = execFileSync(
     process.execPath,
-    ["--experimental-strip-types", "--import", LOADER, driver],
+    ["--import", LOADER, driver],
     {
       cwd: WEB,
       encoding: "utf8",

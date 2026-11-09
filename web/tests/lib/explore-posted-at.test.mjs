@@ -1,14 +1,14 @@
 /**
  * Regression: Explore's ISO publication date must survive Add to Pipeline.
  *
- * This executes the real web writer (pipeline.ts) and canonical scan.mjs
+ * This executes the real web writer (pipeline.js) and canonical scan.mjs
  * writers against a disposable data root. The only source substitution is
  * Next's @/lib/career-ops alias, which Node's test runner cannot resolve.
  * Any referenced sibling writer-result helper is staged unchanged beside the
  * temporary .mts module to preserve relative ESM imports.
  * No dashboard, ATS network request, LLM, or real user data is involved.
  *
- * Run from web/: node --experimental-strip-types --test tests/lib/explore-posted-at.test.mjs
+ * Run from web/: node --test tests/lib/explore-posted-at.test.mjs
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -19,7 +19,7 @@ import { dirname, resolve as resolvePath } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const repo = resolvePath(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-const sourcePath = path.join(repo, 'web', 'src', 'lib', 'core', 'pipeline.ts');
+const sourcePath = path.join(repo, 'web', 'src', 'lib', 'core', 'pipeline.js');
 const scanPath = path.join(repo, 'scan.mjs');
 const todayPath = path.join(repo, 'lib', 'local-today.mjs');
 const pipelineReaderPath = path.join(repo, 'web', 'src', 'lib', 'pipeline-table.mjs');
@@ -62,7 +62,7 @@ test('Explore add preserves a valid posting date in pipeline and scan history', 
   process.env.CAREER_OPS_TRACKER = path.join(tmp, 'data', 'applications.md');
   process.env.CAREER_OPS_PORTALS = path.join(tmp, 'portals.yml');
 
-  // pipeline.ts imports localToday from <code root>/lib. The shim below points
+  // pipeline.js imports localToday from <code root>/lib. The shim below points
   // the code root at the throwaway root, so stage that system module there.
   fs.mkdirSync(path.join(tmp, 'lib'), { recursive: true });
   fs.copyFileSync(todayPath, path.join(tmp, 'lib', 'local-today.mjs'));
@@ -79,9 +79,7 @@ test('Explore add preserves a valid posting date in pipeline and scan history', 
     + `const rootScript = (name) => {\n`
     + `  if (name !== "scan") throw new Error("Unexpected script name: " + name);\n`
     + `  return ${JSON.stringify(scanPath)};\n};`;
-  // Node >=22.6.0 supports --experimental-strip-types for .mts files,
-  // but node:module.stripTypeScriptTypes() was only added in 22.13.0.
-  // A newer pipeline.ts may import a sibling writer-result helper. Keep its
+  // A newer pipeline.js may import a sibling writer-result helper. Keep its
   // relative import resolvable when the source is loaded from this temp root.
   if (/from\s+["']\.\/pipeline-writer-result\.mjs["']/.test(original)) {
     const helperName = 'pipeline-writer-result.mjs';
@@ -90,7 +88,7 @@ test('Explore add preserves a valid posting date in pipeline and scan history', 
       path.join(tmp, helperName),
     );
   }
-  const runtimePath = path.join(tmp, 'pipeline-for-test.mts');
+  const runtimePath = path.join(tmp, 'pipeline-for-test.mjs');
   fs.writeFileSync(runtimePath, original.replace(alias, shim).replace(codeRootAlias, ''), 'utf8');
   const webWriter = await import(pathToFileURL(runtimePath).href);
   const { parseInbox } = await import(pathToFileURL(pipelineReaderPath).href);

@@ -8,8 +8,8 @@ import { showPortalsSetup } from "../../src/lib/portals-setup.mjs";
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 
 test("a missing portals.yml is explained before the health check", () => {
-  const view = readFileSync(join(root, "src/components/portals-view.tsx"), "utf8");
-  const page = readFileSync(join(root, "src/app/portals/page.tsx"), "utf8");
+  const view = readFileSync(join(root, "src/components/portals-view.jsx"), "utf8");
+  const page = readFileSync(join(root, "src/app/portals/page.jsx"), "utf8");
   // The old empty line rendered only after a health check, and it told you to
   // ask the assistant. With no file, the page was a single button.
   assert.match(view, /templates\/portals\.example\.yml/);
