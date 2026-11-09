@@ -1,8 +1,12 @@
 /**
  * deploy/rate-limiter.mjs
- * In-memory sliding window rate limiter with exponential back-off and lockout
+ * Persistent sliding window rate limiter with exponential back-off and lockout
  * for login attempts in Career Ops.
  */
+
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
 
 export class LoginRateLimiter {
   /**
@@ -11,26 +15,78 @@ export class LoginRateLimiter {
    * @param {number} [options.windowMs] - Time window for tracking attempts (default: 15 minutes)
    * @param {number} [options.lockoutMs] - Lockout duration after max attempts (default: 15 minutes)
    * @param {number} [options.globalMaxAttempts] - Max global failed attempts across all IPs (default: 50)
+   * @param {string} [options.stateFilePath] - Optional path to persist rate limit state (survives restarts)
    */
   constructor({
     maxAttempts = 5,
     windowMs = 15 * 60 * 1000,
     lockoutMs = 15 * 60 * 1000,
     globalMaxAttempts = 50,
+    stateFilePath = null,
   } = {}) {
     this.maxAttempts = maxAttempts;
     this.windowMs = windowMs;
     this.lockoutMs = lockoutMs;
     this.globalMaxAttempts = globalMaxAttempts;
+    this.stateFilePath = stateFilePath ? path.resolve(stateFilePath) : null;
 
     /** @type {Map<string, { attempts: number[], lockedUntil: number }>} */
     this.ipMap = new Map();
     /** @type {number[]} */
     this.globalAttempts = [];
 
+    if (this.stateFilePath) {
+      this.load();
+    }
+
     // Periodic cleanup every 10 minutes
     this.cleanupTimer = setInterval(() => this.cleanup(), 10 * 60 * 1000);
     if (this.cleanupTimer.unref) this.cleanupTimer.unref();
+  }
+
+  load() {
+    if (!this.stateFilePath || !fs.existsSync(this.stateFilePath)) return;
+    try {
+      const raw = fs.readFileSync(this.stateFilePath, "utf8");
+      if (!raw.trim()) return;
+      const data = JSON.parse(raw);
+      const now = Date.now();
+      if (Array.isArray(data.globalAttempts)) {
+        this.globalAttempts = data.globalAttempts.filter((t) => typeof t === "number" && now - t < this.windowMs);
+      }
+      if (data.ipMap && typeof data.ipMap === "object") {
+        for (const [ip, entry] of Object.entries(data.ipMap)) {
+          if (entry && (entry.lockedUntil > now || (Array.isArray(entry.attempts) && entry.attempts.some((t) => now - t < this.windowMs)))) {
+            this.ipMap.set(ip, {
+              attempts: (entry.attempts || []).filter((t) => now - t < this.windowMs),
+              lockedUntil: entry.lockedUntil || 0,
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`[rate-limiter] Warning: could not parse state file: ${err.message}`);
+    }
+  }
+
+  persist() {
+    if (!this.stateFilePath) return;
+    try {
+      fs.mkdirSync(path.dirname(this.stateFilePath), { recursive: true, mode: 0o700 });
+      const ipObj = {};
+      for (const [ip, entry] of this.ipMap.entries()) {
+        ipObj[ip] = entry;
+      }
+      const data = {
+        globalAttempts: this.globalAttempts,
+        ipMap: ipObj,
+      };
+      const tempPath = `${this.stateFilePath}.tmp.${process.pid}.${Date.now()}.${crypto.randomBytes(4).toString("hex")}`;
+      fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), { mode: 0o600 });
+      fs.renameSync(tempPath, this.stateFilePath);
+    } catch (err) {
+      console.error(`[rate-limiter] Error saving rate limit state: ${err.message}`);
+    }
   }
 
   /**
@@ -102,6 +158,7 @@ export class LoginRateLimiter {
     if (entry.attempts.length >= this.maxAttempts) {
       entry.lockedUntil = now + this.lockoutMs;
     }
+    this.persist();
   }
 
   /**
@@ -109,20 +166,29 @@ export class LoginRateLimiter {
    * @param {string} ip
    */
   recordSuccess(ip) {
-    this.ipMap.delete(ip);
+    if (this.ipMap.has(ip)) {
+      this.ipMap.delete(ip);
+      this.persist();
+    }
   }
 
   cleanup() {
     const now = Date.now();
+    let changed = false;
     for (const [ip, entry] of this.ipMap.entries()) {
       if (entry.lockedUntil <= now) {
         entry.attempts = entry.attempts.filter((t) => now - t < this.windowMs);
         if (entry.attempts.length === 0) {
           this.ipMap.delete(ip);
+          changed = true;
         }
       }
     }
+    const oldLen = this.globalAttempts.length;
     this.globalAttempts = this.globalAttempts.filter((t) => now - t < this.windowMs);
+    if (changed || this.globalAttempts.length !== oldLen) {
+      this.persist();
+    }
   }
 
   destroy() {

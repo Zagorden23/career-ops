@@ -16,6 +16,7 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import net from "node:net";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
@@ -23,6 +24,8 @@ import { AuthStore } from "./auth-store.mjs";
 import { LoginRateLimiter } from "./rate-limiter.mjs";
 import { createGateway } from "./gateway.mjs";
 import { verifyPersistentStorage } from "./storage-check.mjs";
+import { R2Client } from "./r2-client.mjs";
+import { R2StorageAdapter } from "./r2-storage-adapter.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const codeRoot = path.resolve(__dirname, "..");
@@ -32,14 +35,35 @@ const webDir = path.join(codeRoot, "web");
 const PORT = parseInt(process.env.PORT || "3000", 10);
 const AUTH_USER = process.env.CAREER_OPS_AUTH_USER?.trim();
 const AUTH_PASSWORD_HASH = process.env.CAREER_OPS_AUTH_PASSWORD_HASH?.trim();
-const DATA_ROOT = process.env.CAREER_OPS_ROOT?.trim() || "/var/data/career-ops";
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const IS_CLOUD = process.env.CAREER_OPS_CLOUD === "1" || Boolean(process.env.RENDER);
+
+// R2 Storage configuration
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID?.trim();
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID?.trim();
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY?.trim();
+const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME?.trim() || "career-ops-data";
+const R2_ENDPOINT = process.env.R2_ENDPOINT?.trim();
+const USE_R2 = Boolean(R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && (R2_ACCOUNT_ID || R2_ENDPOINT));
+
+// Resolve DATA_ROOT:
+// In Render Free with R2, default to /tmp/career-ops-data or local runtime dir if /var/data/career-ops is missing.
+let DATA_ROOT = process.env.CAREER_OPS_ROOT?.trim();
+if (!DATA_ROOT) {
+  if (USE_R2) {
+    DATA_ROOT = process.platform === "win32"
+      ? path.join(os.tmpdir(), "career-ops-data")
+      : "/tmp/career-ops-data";
+  } else {
+    DATA_ROOT = "/var/data/career-ops";
+  }
+}
 
 console.log("==================================================");
 console.log("Career Ops Production Supervisor Starting");
 console.log(`Port: ${PORT}`);
 console.log(`Data Root: ${DATA_ROOT}`);
+console.log(`Storage Backend: ${USE_R2 ? `Cloudflare R2 (Bucket: ${R2_BUCKET_NAME})` : "Persistent Disk"}`);
 console.log(`Mode: ${IS_PRODUCTION ? "production" : "development"}`);
 console.log("==================================================");
 
@@ -62,8 +86,24 @@ try {
   console.log(`[storage] Verified persistent storage at ${DATA_ROOT}`);
 } catch (err) {
   console.error(`FATAL: Storage verification failed: ${err.message}`);
-  console.error("Ensure that the persistent disk is mounted and writable.");
+  console.error("Ensure that the persistent storage directory is writable.");
   process.exit(1);
+}
+
+// Initialize R2 client and adapter if configured
+let r2Adapter = null;
+if (USE_R2) {
+  const r2Client = new R2Client({
+    accountId: R2_ACCOUNT_ID,
+    accessKeyId: R2_ACCESS_KEY_ID,
+    secretAccessKey: R2_SECRET_ACCESS_KEY,
+    bucketName: R2_BUCKET_NAME,
+    endpoint: R2_ENDPOINT,
+  });
+  r2Adapter = new R2StorageAdapter({
+    client: r2Client,
+    localDataRoot: DATA_ROOT,
+  });
 }
 
 // 3. Find an available internal port for Next.js (loopback only)
@@ -103,10 +143,25 @@ async function main() {
     ...(process.env.CAREER_OPS_WEB_ALLOWED_HOSTS || "").split(/[\s,]+/),
   ].filter(Boolean);
 
-  // Initialize Auth Store
+  // Initialize Auth Store and Rate Limiter
   const sessionDir = process.env.CAREER_OPS_SESSION_DIR || path.join(DATA_ROOT, ".sessions");
   const authStore = new AuthStore({ sessionDir });
-  const rateLimiter = new LoginRateLimiter();
+  const rateLimiter = new LoginRateLimiter({
+    stateFilePath: path.join(sessionDir, "ratelimit.json"),
+  });
+
+  // If R2 storage is configured, hydrate local working tree before spawning services
+  if (r2Adapter) {
+    try {
+      console.log(`[storage] Hydrating data from Cloudflare R2 bucket '${R2_BUCKET_NAME}'...`);
+      const hyd = await r2Adapter.hydrateFromR2();
+      console.log(`[storage] R2 hydration done: ${hyd.downloaded} downloaded, ${hyd.skipped} up to date.`);
+      r2Adapter.startBackgroundSync();
+    } catch (err) {
+      console.error(`FATAL: Initial R2 hydration failed: ${err.message}`);
+      process.exit(1);
+    }
+  }
 
   // Child processes tracking
   const children = [];
@@ -205,6 +260,22 @@ async function main() {
       }
     }
 
+    // Flush R2 storage if active
+    let r2FlushDone = !r2Adapter;
+    if (r2Adapter) {
+      (async () => {
+        try {
+          console.log("[supervisor] Flushing R2 storage on shutdown...");
+          await r2Adapter.flush();
+          console.log("[supervisor] R2 storage flush complete.");
+        } catch (err) {
+          console.error(`[r2-storage] Flush error on shutdown: ${err.message}`);
+        } finally {
+          r2FlushDone = true;
+        }
+      })();
+    }
+
     // Force kill if not exited within 8 seconds
     const killTimeout = setTimeout(() => {
       console.warn("[supervisor] Force killing remaining children with SIGKILL...");
@@ -222,13 +293,13 @@ async function main() {
 
     if (killTimeout.unref) killTimeout.unref();
 
-    // Check when all children exit
+    // Check when all children exit and R2 flush completes
     const checkInterval = setInterval(() => {
       const alive = children.some(({ proc }) => proc && !proc.killed && proc.exitCode === null);
-      if (!alive) {
+      if (!alive && r2FlushDone) {
         clearInterval(checkInterval);
         clearTimeout(killTimeout);
-        console.log("[supervisor] All child processes reaped. Exiting cleanly.");
+        console.log("[supervisor] All child processes reaped and storage synchronized. Exiting cleanly.");
         process.exit(exitCode);
       }
     }, 200);

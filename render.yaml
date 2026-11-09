@@ -1,22 +1,18 @@
 # render.yaml — Render Infrastructure as Code Blueprint for Career Ops
 # https://render.com/docs/blueprint-spec
 #
-# Deploy a secure, single-owner, persistent Career Ops instance.
-# Note: Persistent disks require a paid plan (Starter or higher).
+# Deploy a secure, single-owner, persistent Career Ops instance on Render Free
+# using Cloudflare R2 for zero-cost external persistent storage.
 
 services:
   - type: web
     name: career-ops
     runtime: node
-    plan: starter
+    plan: free
     region: oregon
     buildCommand: PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --no-audit --no-fund && npm --prefix web ci --include=dev && npm --prefix web run build
     startCommand: node deploy/render-start.mjs
     healthCheckPath: /healthz
-    disk:
-      name: career-ops-data
-      mountPath: /var/data/career-ops
-      sizeGB: 10
     envVars:
       - key: NODE_VERSION
         value: 22.13.0
@@ -25,9 +21,20 @@ services:
       - key: NEXT_TELEMETRY_DISABLED
         value: "1"
       - key: CAREER_OPS_ROOT
-        value: /var/data/career-ops
+        value: /tmp/career-ops-data
       - key: CAREER_OPS_CLOUD
         value: "1"
+      # Cloudflare R2 Persistent Storage (Free Tier)
+      - key: R2_BUCKET_NAME
+        value: career-ops-data
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_ENDPOINT
+        sync: false
       # Owner credentials (configured in Render Dashboard, sync: false keeps them private)
       - key: CAREER_OPS_AUTH_USER
         sync: false
