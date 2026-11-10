@@ -6,6 +6,8 @@ import { cn } from "@/lib/cn";
 import { ATS_LABEL, ATS_SOURCES, cleanChips } from "@/lib/explore";
 
 import { CHINA_PRESET, CHINA_SOURCES, EMPLOYER_LABEL } from "@/lib/employer-preset.mjs";
+import { inferHierarchyFromAllowChips } from "@/lib/location-catalog.mjs";
+import { LocationHierarchyPicker } from "./location-hierarchy-picker.jsx";
 
 const RECENCY = [
   { label: "24h", days: 1 },
@@ -105,6 +107,9 @@ export function FilterBuilder({
 }) {
   const employer = filters.preset === CHINA_PRESET;
   const [advanced, setAdvanced] = useState(false);
+  const [locHierarchy, setLocHierarchy] = useState(() =>
+    inferHierarchyFromAllowChips(filters.allow),
+  );
   const set = (patch) => onChange({ ...filters, ...patch });
   const toggleAts = (a) => {
     const has = filters.ats.includes(a);
@@ -144,16 +149,36 @@ export function FilterBuilder({
         <KeywordField ariaLabel="Exclude" values={filters.negative} tone="exc" placeholder="manager, sales, contract…" onChange={(v) => set({ negative: v })} />
       </div>}
 
-      <div>
-        <Label hint="matches any city, region, country, or Remote">
+      <div className="space-y-2.5">
+        <Label hint="select Country → State → Office/Branch City, or add custom location chips below">
           <span className="inline-flex items-center gap-1.5">
             <MapPin className="size-3.5 text-muted" /> City or location
           </span>
         </Label>
+        {!employer && (
+          <LocationHierarchyPicker
+            country={locHierarchy.country}
+            state={locHierarchy.state}
+            city={locHierarchy.city}
+            includeRemote={locHierarchy.includeRemote}
+            onChange={(next) => {
+              setLocHierarchy({
+                country: next.country,
+                state: next.state,
+                city: next.city,
+                includeRemote: next.includeRemote,
+              });
+              set({
+                allow: next.allow,
+                alwaysAllow: next.alwaysAllow,
+              });
+            }}
+          />
+        )}
         <KeywordField
           values={filters.allow}
           tone="inc"
-          placeholder="Toronto, New York, Remote…"
+          placeholder="Bengaluru, Hyderabad, Mumbai, Toronto, New York, Remote…"
           ariaLabel="City or location"
           onChange={(v) => set({ allow: v })}
         />

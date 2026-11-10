@@ -14,6 +14,10 @@ import { ingestErrorMessage } from "@/lib/cv/ingest-error.mjs";
 import { cvIngestSaveBody } from "@/lib/cv-write.mjs";
 import { canReviewIngest, planIngestSave } from "@/lib/cv-ingest-base.mjs";
 import { DEFAULT_FILTERS, filtersToParams } from "@/lib/explore";
+import {
+  buildLocationFilterTokens,
+  inferLocationHierarchyFromText,
+} from "@/lib/location-catalog.mjs";
 import { CV_UPLOAD_ACCEPT, cvUploadError } from "@/lib/cv/upload.mjs";
 import { CvMarketModifier } from "@/components/cv/cv-market-modifier";
 
@@ -261,7 +265,20 @@ export function CvIngest({ onSaved, onSavingChange, variant = "onboarding" }) {
     // only + a wide 30-day window; location stays a refinement for the deepen step, NOT a
     // hard exclude (allow=[] passes everything). Recall over precision for the first reveal.
     const roles = seed?.roles?.length ? seed.roles : seed?.title ? [seed.title] : [];
-    const f = { ...DEFAULT_FILTERS, ats: [...DEFAULT_FILTERS.ats], positive: roles, sinceDays: 30 };
+    const locHierarchy = inferLocationHierarchyFromText(
+      seed?.location ? `${seed.location}\n${md}` : md,
+    );
+    const locTokens = locHierarchy.country
+      ? buildLocationFilterTokens(locHierarchy)
+      : { allow: [], alwaysAllow: [] };
+    const f = {
+      ...DEFAULT_FILTERS,
+      ats: [...DEFAULT_FILTERS.ats],
+      positive: roles,
+      allow: locTokens.allow,
+      alwaysAllow: locTokens.alwaysAllow,
+      sinceDays: 30,
+    };
     const qs = filtersToParams(f);
     router.push(`/explore?${qs}${qs ? "&" : ""}run=1`);
   };

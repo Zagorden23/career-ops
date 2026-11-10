@@ -13,7 +13,11 @@ import os from "node:os";
 import net from "node:net";
 import { fileURLToPath } from "node:url";
 import { hashPassword } from "../../deploy/hash-password.mjs";
-import { ensureCloudCliBin, convertCvSourceToMarkdown } from "../../deploy/cloud-cli-shim.mjs";
+import {
+  ensureCloudCliBin,
+  convertCvSourceToMarkdown,
+  buildAssistantResponse,
+} from "../../deploy/cloud-cli-shim.mjs";
 import { spawnHeadlessCli } from "../../web/src/lib/spawn-cli.mjs";
 import { scopeFrom } from "../../web/src/lib/claude-invocation.mjs";
 import { CAPS } from "../../web/src/lib/worker-capabilities.mjs";
@@ -193,6 +197,57 @@ test("8. Cloud CLI shim converts extracted PDF and LaTeX CV text via spawnHeadle
   assert.ok(streamed.includes("<<cv:seed>>"), "stream must include <<cv:seed>>");
   assert.ok(streamed.includes("Priya Sharma"), "stream must preserve candidate name");
   assert.ok(streamed.includes("42%"), "stream must preserve CV metrics");
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("9. AI Assistant engine (buildAssistantResponse) delivers distinct, context-aware answers per query intent", async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "co-assistant-test-"));
+  fs.writeFileSync(
+    path.join(tmpDir, "cv.md"),
+    [
+      "# CV -- Priya Sharma",
+      "**Location:** Bengaluru, India",
+      "## Work Experience",
+      "### Senior Software Engineer -- Acme Cloud",
+      "- Built scalable React, Next.js, Node.js, and Python microservices reducing latency by 42%.",
+      "## Skills",
+      "- Python, TypeScript, React, Next.js, Node.js, AWS, Docker",
+    ].join("\n"),
+    "utf8",
+  );
+
+  const indiaReply = buildAssistantResponse(
+    "--- Conversation ---\nUser: Find me software engineering jobs in Bengaluru, India\nAssistant:",
+    tmpDir,
+  );
+  const cvReply = buildAssistantResponse(
+    "--- Conversation ---\nUser: Look at my CV and suggest the highest-impact improvements.\nAssistant:",
+    tmpDir,
+  );
+  const interviewReply = buildAssistantResponse(
+    "--- Conversation ---\nUser: Prepare me for technical and behavioral interview questions.\nAssistant:",
+    tmpDir,
+  );
+  const salaryReply = buildAssistantResponse(
+    "--- Conversation ---\nUser: What salary / CTC LPA should I expect in India and how do I negotiate?\nAssistant:",
+    tmpDir,
+  );
+  const coverLetterReply = buildAssistantResponse(
+    "--- Conversation ---\nUser: Draft a short cover letter for Razorpay.\nAssistant:",
+    tmpDir,
+  );
+
+  // Every intent must return a distinct answer
+  const uniqueAnswers = new Set([indiaReply, cvReply, interviewReply, salaryReply, coverLetterReply]);
+  assert.equal(uniqueAnswers.size, 5, "Each user query intent must receive a distinct answer");
+
+  assert.match(indiaReply, /Bengaluru, Karnataka, India/);
+  assert.match(indiaReply, /<<act:explore /);
+  assert.match(cvReply, /Personalized CV Review for \*\*Priya Sharma\*\*/);
+  assert.match(interviewReply, /Interview Preparation Guide for \*\*Priya Sharma\*\*/);
+  assert.match(salaryReply, /LPA/);
+  assert.match(coverLetterReply, /Razorpay/);
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });

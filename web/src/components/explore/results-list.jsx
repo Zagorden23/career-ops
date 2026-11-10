@@ -1,31 +1,71 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Compass } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { CHINA_SOURCES } from "@/lib/employer-preset.mjs";
+import {
+  inferHierarchyFromAllowChips,
+  matchesLocationHierarchy,
+} from "@/lib/location-catalog.mjs";
 import { CostBadge } from "@/components/cost/cost-badge";
 import { DiscoveryCard } from "./discovery-card.jsx";
+import { LocationHierarchyPicker } from "./location-hierarchy-picker.jsx";
 import { useExplore } from "./explore-provider.jsx";
 
 export function ResultsList({ offers }) {
-  const { companiesScanned, partial, error, addToPipeline, added, mode, running } = useExplore();
+  const {
+    filters,
+    setFilters,
+    discover,
+    companiesScanned,
+    partial,
+    error,
+    addToPipeline,
+    added,
+    mode,
+    running,
+  } = useExplore();
   const isAi = mode === "ai";
   const employer = offers.some(o => CHINA_SOURCES.includes(o.source));
   const [sort, setSort] = useState("fresh");
   const [q, setQ] = useState("");
+  const [locFilter, setLocFilter] = useState(() =>
+    inferHierarchyFromAllowChips(filters?.allow || []),
+  );
 
   const view = useMemo(() => {
     const needle = q.trim().toLowerCase();
     let list = offers;
-    if (needle) list = list.filter((o) => o.title.toLowerCase().includes(needle) || o.company.toLowerCase().includes(needle));
+    if (locFilter.country) {
+      list = list.filter((o) => matchesLocationHierarchy(o.location, locFilter));
+    }
+    if (needle) {
+      list = list.filter(
+        (o) =>
+          o.title.toLowerCase().includes(needle) ||
+          o.company.toLowerCase().includes(needle) ||
+          (o.location || "").toLowerCase().includes(needle),
+      );
+    }
     const sorted = [...list].sort((a, b) =>
       sort === "fresh" ? (b.postedAt || "").localeCompare(a.postedAt || "") : a.company.localeCompare(b.company),
     );
     return sorted;
-  }, [offers, q, sort]);
+  }, [offers, q, sort, locFilter]);
 
-  const addable = offers.filter((o) => !o.inPipeline && !o.evaluatedN && !added.has(o.url));
+  const addable = view.filter((o) => !o.inPipeline && !o.evaluatedN && !added.has(o.url));
+
+  const rescanForLocation = () => {
+    if (!locFilter.allow?.length) return;
+    setFilters({
+      ...filters,
+      allow: locFilter.allow,
+      alwaysAllow: locFilter.alwaysAllow || locFilter.allow.slice(0, 12),
+      sinceDays: Math.max(filters?.sinceDays || 7, 30),
+    });
+    void discover();
+  };
 
   return (
     <div className="space-y-4">
@@ -77,14 +117,69 @@ export function ResultsList({ offers }) {
         </div>
       </div>
 
+      {!employer && (
+        <div className="space-y-2">
+          <LocationHierarchyPicker
+            compact
+            country={locFilter.country}
+            state={locFilter.state}
+            city={locFilter.city}
+            includeRemote={locFilter.includeRemote}
+            onChange={(next) => {
+              setLocFilter(next);
+              if (filters) {
+                setFilters({
+                  ...filters,
+                  allow: next.allow,
+                  alwaysAllow: next.alwaysAllow,
+                });
+              }
+            }}
+          />
+          {locFilter.country && !running && !isAi && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-brand/25 bg-brand/5 px-3 py-2 text-xs">
+              <span className="text-muted">
+                Showing <strong className="text-foreground">{view.length}</strong> of {offers.length} roles matching{" "}
+                <strong className="text-foreground">{[locFilter.city, locFilter.state, locFilter.country].filter(Boolean).join(" → ")}</strong>
+                {locFilter.includeRemote ? " (+ Remote)" : ""}.
+              </span>
+              <button
+                type="button"
+                onClick={rescanForLocation}
+                className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1 text-xs font-medium text-brand-foreground transition hover:brightness-110"
+              >
+                <Compass className="size-3.5" /> Scan live ATS boards for {[locFilter.city, locFilter.state, locFilter.country].filter(Boolean).join(", ")}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {view.map((o) => (
           <DiscoveryCard key={o.url} offer={o} inPipeline={o.inPipeline} evaluatedN={o.evaluatedN} />
         ))}
       </div>
 
-      {view.length === 0 && (q.trim() || !running) && (
-        <p className="py-10 text-center text-sm text-faint">No results match “{q}”.</p>
+      {view.length === 0 && (q.trim() || locFilter.country || !running) && (
+        <div className="py-10 text-center text-sm text-faint space-y-3">
+          <p>
+            No results in the current batch match{" "}
+            {locFilter.country
+              ? [locFilter.city, locFilter.state, locFilter.country].filter(Boolean).join(" → ")
+              : `“${q}”`}
+            .
+          </p>
+          {locFilter.country && !running && !isAi && (
+            <button
+              type="button"
+              onClick={rescanForLocation}
+              className="inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-xs font-medium text-brand-foreground transition hover:brightness-110"
+            >
+              <Compass className="size-3.5" /> Run a deep ATS scan specifically for {[locFilter.city, locFilter.state, locFilter.country].filter(Boolean).join(", ")}
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

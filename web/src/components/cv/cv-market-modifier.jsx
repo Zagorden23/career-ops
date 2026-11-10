@@ -18,6 +18,11 @@ import {
 import { cn } from "@/lib/cn";
 import { DEFAULT_FILTERS, filtersToParams } from "@/lib/explore";
 import {
+  buildLocationFilterTokens,
+  inferLocationHierarchyFromText,
+} from "@/lib/location-catalog.mjs";
+import { LocationHierarchyPicker } from "@/components/explore/location-hierarchy-picker.jsx";
+import {
   analyzeCvAndSuggestMarketJobs,
   modifyCvForMarketJobs,
 } from "@/lib/cv/market-modifier.mjs";
@@ -44,6 +49,9 @@ export function CvMarketModifier({ cvContent = "", onApplyModifiedCv }) {
   const [draftModified, setDraftModified] = useState("");
   const [appliedBanner, setAppliedBanner] = useState(false);
   const [error, setError] = useState("");
+  const [locSelection, setLocSelection] = useState(() =>
+    inferLocationHierarchyFromText(cvContent),
+  );
 
   // Re-run local instant analysis whenever cvContent or interests change
   useEffect(() => {
@@ -53,6 +61,10 @@ export function CvMarketModifier({ cvContent = "", onApplyModifiedCv }) {
       const valid = prev.filter((id) => next.suggestions.some((s) => s.id === id));
       if (valid.length > 0) return valid;
       return next.suggestions.slice(0, 2).map((s) => s.id);
+    });
+    setLocSelection((prev) => {
+      if (prev.country) return prev;
+      return inferLocationHierarchyFromText(cvContent);
     });
   }, [cvContent, interests]);
 
@@ -136,10 +148,13 @@ export function CvMarketModifier({ cvContent = "", onApplyModifiedCv }) {
             .filter((s) => selectedIds.includes(s.id))
             .flatMap((s) => s.searchRoles)
             .slice(0, 5);
+    const locTokens = buildLocationFilterTokens(locSelection);
     const f = {
       ...DEFAULT_FILTERS,
       ats: [...DEFAULT_FILTERS.ats],
       positive: roles.length > 0 ? roles : ["Software Engineer"],
+      allow: locTokens.allow,
+      alwaysAllow: locTokens.alwaysAllow,
       sinceDays: 30,
     };
     const qs = filtersToParams(f);
@@ -333,35 +348,56 @@ export function CvMarketModifier({ cvContent = "", onApplyModifiedCv }) {
         </div>
       </div>
 
-      {/* Step 3: Action Bar to Rewrite / Modify CV */}
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-        <div className="text-xs text-muted">
-          Preserves every real company, date, and metric in <code className="text-foreground">cv.md</code> while upgrading positioning, summary, and ATS keywords.
+      {/* Step 3: Target Location (Country -> State -> Office City) & Action Bar */}
+      <div className="mt-6 space-y-4 border-t border-border pt-4">
+        <div>
+          <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">
+            3. Target Job Location (Country &rarr; State / Province &rarr; Company Office / Branch City)
+          </p>
+          <LocationHierarchyPicker
+            country={locSelection.country}
+            state={locSelection.state}
+            city={locSelection.city}
+            includeRemote={locSelection.includeRemote}
+            onChange={(next) =>
+              setLocSelection({
+                country: next.country,
+                state: next.state,
+                city: next.city,
+                includeRemote: next.includeRemote,
+              })
+            }
+          />
         </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            onClick={scanMatchingJobs}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-xs font-medium text-foreground transition hover:border-brand/40 hover:text-brand-text"
-          >
-            <Compass className="size-3.5" /> Scan live jobs for selected roles
-          </button>
-          <button
-            type="button"
-            onClick={runAiModify}
-            disabled={modifying || !cvContent.trim()}
-            className="inline-flex items-center gap-2 rounded-full bg-brand px-5 py-2 text-xs font-medium text-brand-foreground transition hover:bg-brand-200 disabled:opacity-50"
-          >
-            {modifying ? (
-              <>
-                <Loader2 className="size-3.5 animate-spin" /> Optimizing CV for market demand…
-              </>
-            ) : (
-              <>
-                <Wand2 className="size-3.5" /> Rewrite & Optimize CV for Selected Jobs
-              </>
-            )}
-          </button>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-xs text-muted">
+            Preserves every real company, date, and metric in <code className="text-foreground">cv.md</code> while upgrading positioning, summary, and ATS keywords.
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={scanMatchingJobs}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-xs font-medium text-foreground transition hover:border-brand/40 hover:text-brand-text"
+            >
+              <Compass className="size-3.5" /> Scan live jobs for selected roles{locSelection.country ? ` in ${[locSelection.city, locSelection.state, locSelection.country].filter(Boolean).join(", ")}` : ""}
+            </button>
+            <button
+              type="button"
+              onClick={runAiModify}
+              disabled={modifying || !cvContent.trim()}
+              className="inline-flex items-center gap-2 rounded-full bg-brand px-5 py-2 text-xs font-medium text-brand-foreground transition hover:bg-brand-200 disabled:opacity-50"
+            >
+              {modifying ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" /> Optimizing CV for market demand…
+                </>
+              ) : (
+                <>
+                  <Wand2 className="size-3.5" /> Rewrite & Optimize CV for Selected Jobs
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
