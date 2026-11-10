@@ -4,9 +4,10 @@ import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState }
 import ReactMarkdown from "react-markdown";
 import { SkillGaps } from "@/components/skill-gaps";
 import remarkGfm from "remark-gfm";
-import { Check, Loader2, Upload } from "lucide-react";
+import { Check, Loader2, Sparkles, Upload } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { CvIngest } from "@/components/cv/cv-ingest";
+import { CvMarketModifier } from "@/components/cv/cv-market-modifier";
 import {
   cvSaveUsesKeepalive,
   draftChange,
@@ -174,6 +175,12 @@ export function CvEditor() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="#cv-market-modifier-section"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-brand/40 bg-brand/10 px-4 py-2 text-sm font-medium text-brand-text transition-colors hover:bg-brand/20 max-sm:min-h-[44px]"
+          >
+            <Sparkles className="size-4" /> AI Market Modifier
+          </a>
           <button
             type="button"
             disabled={state.phase !== "ready" || importSaving || state.inflight !== null || state.conflict}
@@ -250,6 +257,18 @@ export function CvEditor() {
               <p className="text-muted">Preview appears here.</p>
             )}
           </article>
+        </div>
+      )}
+
+      {/* AI Market-Driven CV Modifier & Demanding Job Matcher */}
+      {state.phase === "ready" && (
+        <div id="cv-market-modifier-section">
+          <CvMarketModifier
+            cvContent={state.content}
+            onApplyModifiedCv={(modifiedMarkdown) => {
+              dispatch({ type: "edit", content: modifiedMarkdown });
+            }}
+          />
         </div>
       )}
 

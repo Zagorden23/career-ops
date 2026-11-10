@@ -15,6 +15,7 @@ import { cvIngestSaveBody } from "@/lib/cv-write.mjs";
 import { canReviewIngest, planIngestSave } from "@/lib/cv-ingest-base.mjs";
 import { DEFAULT_FILTERS, filtersToParams } from "@/lib/explore";
 import { CV_UPLOAD_ACCEPT, cvUploadError } from "@/lib/cv/upload.mjs";
+import { CvMarketModifier } from "@/components/cv/cv-market-modifier";
 
 function cliId() {
   try {
@@ -466,6 +467,14 @@ export function CvIngest({ onSaved, onSavingChange, variant = "onboarding" }) {
           <Lock className="size-3" /> {variant === "editor" ? "Save updates cv.md and backs up the previous version" : "Nothing is saved until you click Save."}
         </span>
       </div>
+      {variant === "onboarding" && (
+        <CvMarketModifier
+          cvContent={md}
+          onApplyModifiedCv={(modifiedMarkdown) => {
+            setMd(modifiedMarkdown);
+          }}
+        />
+      )}
     </div>
   );
 }
