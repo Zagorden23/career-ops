@@ -36,6 +36,7 @@ import { createEmailSender, createSmsSender } from "./notifiers.mjs";
 import { createGoogleOAuth } from "./google-oauth.mjs";
 import { WorkspaceManager, OWNER_ACCOUNT_ID, TENANTS_DIRNAME } from "./workspace-manager.mjs";
 import { loadAuthConfig, buildWorkerEnv } from "./auth-config.mjs";
+import { ensureCloudCliBin } from "./cloud-cli-shim.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const codeRoot = path.resolve(__dirname, "..");
@@ -230,6 +231,8 @@ async function main() {
   );
 
   let isShuttingDown = false;
+  const cloudBinDir = ensureCloudCliBin(path.join(DATA_ROOT, ".career-ops-bin"));
+  const workerPath = [process.env.PATH, cloudBinDir].filter(Boolean).join(path.delimiter);
 
   // 3. One Next.js process per account, started on demand
   async function startAppProcess({ key, root }) {
@@ -244,6 +247,7 @@ async function main() {
         overrides: {
           PORT: String(port),
           HOSTNAME: "127.0.0.1",
+          PATH: workerPath,
           CAREER_OPS_ROOT: root,
           CAREER_OPS_CODE_ROOT: codeRoot,
           CAREER_OPS_WEB_ALLOWED_HOSTS: [...allowedHosts, "127.0.0.1", "localhost"].join(","),
