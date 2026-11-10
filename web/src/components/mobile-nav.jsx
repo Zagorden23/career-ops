@@ -9,6 +9,7 @@ import { CoMark } from "@/components/co-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { WorkerPills } from "@/components/jobs/worker-pills";
 import { UsageMeter } from "@/components/usage-meter";
+import { AccountMenu } from "@/components/account-menu";
 import { instrumentSerif } from "@/lib/fonts";
 import { visibleNavItems, isActivePath } from "@/lib/nav-items";
 import { useJobs } from "@/components/jobs/job-store";
@@ -37,7 +38,7 @@ const STYLE = `
 @media print{.co-mnav,.co-mscrim,.co-mdrawer{display:none}}
 `;
 
-export function MobileNav({ followupsEnabled }) {
+export function MobileNav({ followupsEnabled, account = null }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const panelRef = useRef(null);
@@ -195,6 +196,7 @@ export function MobileNav({ followupsEnabled }) {
 
         <div className="co-msafe mt-auto space-y-3 border-t border-border px-4 pt-4">
           <UsageMeter />
+          <AccountMenu account={account} />
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-faint">Appearance</span>

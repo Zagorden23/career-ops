@@ -119,12 +119,17 @@ export class R2StorageAdapter {
     const errors = [];
 
     try {
-      const { keys } = await this.client.listObjects({ maxKeys: 1000 });
+      // Every page: one listing call stops at 1000 objects, and a bucket that
+      // holds more would come back with part of the data missing.
+      const keys = await this.client.listAllObjects();
       console.log(`[r2-storage] Found ${keys.length} objects in R2 bucket.`);
 
       for (const item of keys) {
         try {
-          const key = item.key;
+          // normalizeKey() refuses "..": an object key must not be able to
+          // name a path outside the data root.
+          const key = this.normalizeKey(item.key);
+          if (!key) continue;
           const localPath = path.join(this.localDataRoot, key);
 
           // Check if local file already matches size and timestamp
@@ -244,6 +249,29 @@ export class R2StorageAdapter {
     }
   }
 
+  /**
+   * Delete every object under a directory prefix from the bucket (the local
+   * files are the caller's to remove). Used when a workspace is deleted.
+   * @param {string} relDir Directory relative to the data root
+   * @returns {Promise<number>} Objects deleted
+   */
+  async deletePrefix(relDir) {
+    const prefix = this.normalizeKey(relDir);
+    // An empty prefix would match the whole bucket.
+    if (!prefix) throw new Error("deletePrefix requires a non-empty directory");
+    const objects = await this.client.listAllObjects({ prefix: `${prefix}/` });
+    let deleted = 0;
+    for (const item of objects) {
+      // The watcher may already have queued these; drop them so a late "put"
+      // cannot re-create an object this call just removed.
+      this.pendingSyncs.delete(item.key);
+      this.pendingSyncs.delete(item.key.replace(/\//g, path.sep));
+      await this.client.deleteObject(item.key);
+      deleted++;
+    }
+    return deleted;
+  }
+
   scheduleSync() {
     if (this.syncDebounceTimer) clearTimeout(this.syncDebounceTimer);
     this.syncDebounceTimer = setTimeout(() => {
@@ -254,8 +282,15 @@ export class R2StorageAdapter {
     if (this.syncDebounceTimer.unref) this.syncDebounceTimer.unref();
   }
 
-  async processPendingSyncs() {
-    if (this.pendingSyncs.size === 0 || this.isFlushing) return;
+  /**
+   * @param {object} [options]
+   * @param {boolean} [options.duringFlush] Set by flush() itself. Background
+   *   ticks stand down while a flush runs; the flush must still drain the
+   *   queue, or the deletes waiting in it are lost and the deleted files come
+   *   back at the next hydration.
+   */
+  async processPendingSyncs({ duringFlush = false } = {}) {
+    if (this.pendingSyncs.size === 0 || (this.isFlushing && !duringFlush)) return;
 
     const entries = Array.from(this.pendingSyncs.entries());
     this.pendingSyncs.clear();
@@ -301,7 +336,7 @@ export class R2StorageAdapter {
     }
 
     // Process any remaining items
-    await this.processPendingSyncs();
+    await this.processPendingSyncs({ duringFlush: true });
 
     // Full scan of user dirs to ensure nothing was missed
     const scanDir = (dir, prefix = "") => {

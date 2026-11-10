@@ -17,10 +17,11 @@ import { FirstScoreView } from "@/components/explore/first-score-view";
 import { BetaBanner } from "@/components/beta/beta-banner";
 import { WorkerPills } from "@/components/jobs/worker-pills";
 import { UsageMeter } from "@/components/usage-meter";
+import { AccountMenu } from "@/components/account-menu";
 import { instrumentSerif } from "@/lib/fonts";
 import { visibleNavItems, isActivePath } from "@/lib/nav-items";
 
-export function AppShell({ children, followupsEnabled }) {
+export function AppShell({ children, followupsEnabled, account = null }) {
   const pathname = usePathname();
   return (
     <JobsProvider>
@@ -33,7 +34,7 @@ export function AppShell({ children, followupsEnabled }) {
       >
         Skip to content
       </a>
-      <MobileNav followupsEnabled={followupsEnabled} />
+      <MobileNav followupsEnabled={followupsEnabled} account={account} />
       <div className="flex min-h-screen">
         <aside className="sticky top-0 hidden print:hidden h-screen w-60 shrink-0 flex-col overflow-y-auto border-r border-border bg-surface/30 p-4 md:flex">
           <Link href="/" className="mb-8 flex items-center gap-2.5 px-1">
@@ -73,6 +74,7 @@ export function AppShell({ children, followupsEnabled }) {
 
           <div className="mt-auto space-y-3 pb-16 pt-4 md-tall:pb-40">
             <UsageMeter />
+            <AccountMenu account={account} />
             <div className="space-y-1.5">
               <div className="flex items-center justify-between px-1">
                 <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-faint">Appearance</span>

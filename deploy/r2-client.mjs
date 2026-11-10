@@ -79,7 +79,7 @@ export class R2Client {
     // Canonical query string
     const queryKeys = Object.keys(query).sort();
     const canonicalQueryStr = queryKeys
-      .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(query[k])}`)
+      .map((k) => `${encodeRfc3986(k)}=${encodeRfc3986(query[k])}`)
       .join("&");
 
     // Canonical URI
@@ -125,7 +125,11 @@ export class R2Client {
   }
 
   async _request({ method, key = "", query = {}, headers = {}, body = Buffer.alloc(0), retries = 3 }) {
-    const rawPath = key ? `/${this.bucketName}/${encodeURI(key).replace(/\+/g, "%2B")}` : `/${this.bucketName}`;
+    // Each path segment is percent-encoded on its own. encodeURI() leaves "#"
+    // and "?" alone, so a file named "C# developer.pdf" produced a URL that
+    // ended at the "#", and the request went to a different (shorter) key.
+    const encodedKey = String(key).split("/").map(encodeRfc3986).join("/");
+    const rawPath = key ? `/${this.bucketName}/${encodedKey}` : `/${this.bucketName}`;
     const pathname = rawPath.replace(/\/+/g, "/");
 
     let lastError = null;
@@ -140,7 +144,12 @@ export class R2Client {
           body,
         });
 
-        const queryParams = new URLSearchParams(query).toString();
+        // The exact string that was signed. URLSearchParams encodes a space
+        // as "+" where the signature has "%20", which the server rejects.
+        const queryParams = Object.keys(query)
+          .sort()
+          .map((k) => `${encodeRfc3986(k)}=${encodeRfc3986(query[k])}`)
+          .join("&");
         const fullUrl = `${this.endpoint}${pathname}${queryParams ? `?${queryParams}` : ""}`;
 
         const res = await fetch(fullUrl, {
@@ -264,13 +273,14 @@ export class R2Client {
    * @param {number} [options.maxKeys=1000]
    * @returns {Promise<{ keys: Array<{ key: string, size: number, lastModified: string, etag: string }>, prefixes: string[] }>}
    */
-  async listObjects({ prefix = "", delimiter = "", maxKeys = 1000 } = {}) {
+  async listObjects({ prefix = "", delimiter = "", maxKeys = 1000, continuationToken = "" } = {}) {
     const query = {
       "list-type": "2",
       "max-keys": String(maxKeys),
     };
     if (prefix) query.prefix = prefix;
     if (delimiter) query.delimiter = delimiter;
+    if (continuationToken) query["continuation-token"] = continuationToken;
 
     const res = await this._request({ method: "GET", key: "", query });
     if (!res.ok) {
@@ -283,6 +293,38 @@ export class R2Client {
     const xml = await res.text();
     return parseListObjectsV2Xml(xml);
   }
+
+  /**
+   * List every object under a prefix, following continuation tokens. One
+   * listObjects() call returns at most 1000 keys; a bucket holding more would
+   * otherwise be silently truncated.
+   * @param {object} [options]
+   * @param {string} [options.prefix]
+   * @returns {Promise<Array<{ key: string, size: number, lastModified: string, etag: string }>>}
+   */
+  async listAllObjects({ prefix = "" } = {}) {
+    const all = [];
+    let continuationToken = "";
+    // Bounded so a server that keeps answering "truncated" cannot loop forever.
+    for (let page = 0; page < 10_000; page++) {
+      const result = await this.listObjects({ prefix, continuationToken });
+      all.push(...result.keys);
+      if (!result.isTruncated || !result.nextContinuationToken) break;
+      continuationToken = result.nextContinuationToken;
+    }
+    return all;
+  }
+}
+
+/**
+ * Percent-encode as SigV4 requires: everything except the RFC 3986 unreserved
+ * characters. encodeURIComponent() leaves ! ' ( ) * as they are.
+ */
+function encodeRfc3986(value) {
+  return encodeURIComponent(String(value)).replace(
+    /[!'()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
 }
 
 /**
@@ -318,7 +360,15 @@ function parseListObjectsV2Xml(xml) {
     prefixes.push(decodeXml(match[1]));
   }
 
-  return { keys, prefixes };
+  const isTruncated = /<IsTruncated>\s*true\s*<\/IsTruncated>/i.test(xml);
+  const tokenMatch = /<NextContinuationToken>(.*?)<\/NextContinuationToken>/.exec(xml);
+
+  return {
+    keys,
+    prefixes,
+    isTruncated,
+    nextContinuationToken: tokenMatch ? decodeXml(tokenMatch[1]) : "",
+  };
 }
 
 function decodeXml(str) {

@@ -181,9 +181,9 @@ Applied to every response emitted by the gateway:
 
 ## 9. Verification & Test Suite
 
-All security requirements have been validated through automated tests in `deploy/tests/`:
+All security requirements have been validated through automated tests in `tests/deploy/`:
 
-1. `deploy/tests/deployment-security.test.mjs`
+1. `tests/deploy/deployment-security.test.mjs`
    - Test 1: Password hashing and timing-safe verification -> PASS
    - Test 2: Persistent session store across restarts and lifecycle -> PASS
    - Test 3: Login rate limiter tracks failures and locks out -> PASS
@@ -202,5 +202,11 @@ All security requirements have been validated through automated tests in `deploy
      - Logout -> cookie cleared + session invalidated
    - Test 6: Persistent storage verification and seed layout -> PASS
 
-2. `deploy/tests/render-start.test.mjs`
+2. `tests/deploy/render-start.test.mjs`
    - Test 7: Supervisor startup, healthcheck, and graceful SIGTERM shutdown -> PASS
+
+3. `tests/deploy/accounts.test.mjs`
+   - Multi-user accounts, email + password sign-up/sign-in, email OTP, phone SMS OTP, Google OAuth 2.0 + PKCE, unverified-account takeover protection, CSRF form-token binding, and per-user workspace isolation -> PASS
+
+4. `tests/deploy/r2-storage.test.mjs`
+   - Cloudflare R2 SigV4 signing, hydration path-traversal guard, delete propagation, and workspace prefix cleanup -> PASS

@@ -30,8 +30,12 @@ export class AuthStore {
     this.sessionFilePath = path.join(this.sessionDir, "sessions.json");
     this.maxAgeMs = maxAgeMs;
     this.idleTimeoutMs = idleTimeoutMs;
-    /** @type {Map<string, { id: string, user: string, createdAt: number, lastActive: number, csrfToken: string }>} */
+    /** @type {Map<string, { id: string, user: string, uid?: string, createdAt: number, lastActive: number, csrfToken: string }>} */
     this.sessions = new Map();
+    // When each session was last written to disk. Kept beside the sessions, not
+    // on them, so this bookkeeping never lands in sessions.json.
+    /** @type {Map<string, number>} */
+    this.lastSaved = new Map();
     this.ensureDirectory();
     this.load();
   }
@@ -89,16 +93,19 @@ export class AuthStore {
 
   /**
    * Create a new session for a user.
-   * @param {string} user
-   * @returns {{ id: string, user: string, createdAt: number, lastActive: number, csrfToken: string }}
+   * @param {string} user Display identity forwarded upstream (the owner's username, or an account id)
+   * @param {object} [extra]
+   * @param {string} [extra.uid] Account id the session belongs to ("owner" or a user id)
+   * @returns {{ id: string, user: string, uid?: string, createdAt: number, lastActive: number, csrfToken: string }}
    */
-  createSession(user) {
+  createSession(user, { uid } = {}) {
     const id = crypto.randomBytes(32).toString("hex");
     const csrfToken = crypto.randomBytes(32).toString("hex");
     const now = Date.now();
     const session = {
       id,
       user,
+      ...(uid ? { uid } : {}),
       createdAt: now,
       lastActive: now,
       csrfToken,
@@ -124,6 +131,7 @@ export class AuthStore {
 
     if (isAbsoluteExpired || isIdleExpired) {
       this.sessions.delete(sessionId);
+      this.lastSaved.delete(sessionId);
       this.persist();
       return null;
     }
@@ -140,8 +148,9 @@ export class AuthStore {
     if (session) {
       session.lastActive = Date.now();
       // Only persist every 60 seconds of activity to avoid excessive disk I/O
-      if (!session._lastSaved || Date.now() - session._lastSaved > 60_000) {
-        session._lastSaved = Date.now();
+      const saved = this.lastSaved.get(sessionId) || 0;
+      if (Date.now() - saved > 60_000) {
+        this.lastSaved.set(sessionId, Date.now());
         this.persist();
       }
     }
@@ -155,10 +164,32 @@ export class AuthStore {
   destroySession(sessionId) {
     if (!sessionId) return false;
     const existed = this.sessions.delete(sessionId);
+    this.lastSaved.delete(sessionId);
     if (existed) {
       this.persist();
     }
     return existed;
+  }
+
+  /**
+   * Destroy every session of one account: "sign out everywhere", a password
+   * change, an account deletion.
+   * @param {string} uid Account id
+   * @param {string} [exceptSessionId] A session to keep (the one making the request)
+   * @returns {number} Sessions destroyed
+   */
+  destroySessionsFor(uid, exceptSessionId = null) {
+    if (!uid) return 0;
+    let count = 0;
+    for (const [id, session] of this.sessions.entries()) {
+      if (session.uid === uid && id !== exceptSessionId) {
+        this.sessions.delete(id);
+        this.lastSaved.delete(id);
+        count++;
+      }
+    }
+    if (count > 0) this.persist();
+    return count;
   }
 
   /**
@@ -171,6 +202,7 @@ export class AuthStore {
     for (const [id, session] of this.sessions.entries()) {
       if (now - session.createdAt > this.maxAgeMs || now - session.lastActive > this.idleTimeoutMs) {
         this.sessions.delete(id);
+        this.lastSaved.delete(id);
         count++;
       }
     }

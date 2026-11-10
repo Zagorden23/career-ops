@@ -360,7 +360,15 @@ test("starting the dashboard starts the PDF painter from the repo root and does 
         await new Promise((resolve) => setTimeout(resolve, 20));
       }
     }
-    rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+    // Windows can keep the killed painter's working directory locked for a
+    // moment after the process is gone. Retry for longer, and treat a lock that
+    // outlives the retries as a leftover temp dir, not a test failure: every
+    // assertion above has already run. Any other error still surfaces.
+    try {
+      rmSync(root, { recursive: true, force: true, maxRetries: 30, retryDelay: 200 });
+    } catch (err) {
+      if (!["EPERM", "EBUSY", "ENOTEMPTY"].includes(err?.code)) throw err;
+    }
   }
 });
 

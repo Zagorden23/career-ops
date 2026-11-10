@@ -1,9 +1,11 @@
 import { connection } from "next/server";
+import { headers } from "next/headers";
 import { inter, instrumentSerif, instrumentSerifItalic } from "@/lib/fonts";
 import { AppShell } from "@/components/app-shell";
 import { RouteProgressHost } from "@/components/route-progress-host";
 import { ThemeProvider } from "@/components/theme-provider";
 import { readFollowupsEnabled } from "@/lib/followups-server";
+import { readGatewayAccount } from "@/lib/gateway-account.mjs";
 import "./globals.css";
 
 export const metadata = {
@@ -31,6 +33,8 @@ const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('career-ops:the
 export default async function RootLayout({ children }) {
   await connection();
   const followupsEnabled = readFollowupsEnabled();
+  // Null on a local run; set only behind the hosted sign-in gateway.
+  const account = readGatewayAccount(await headers(), process.env);
   return (
     <html
       lang="en"
@@ -41,7 +45,7 @@ export default async function RootLayout({ children }) {
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <RouteProgressHost />
         <ThemeProvider>
-          <AppShell followupsEnabled={followupsEnabled}>{children}</AppShell>
+          <AppShell followupsEnabled={followupsEnabled} account={account}>{children}</AppShell>
         </ThemeProvider>
       </body>
     </html>

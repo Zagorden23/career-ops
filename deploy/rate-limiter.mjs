@@ -16,6 +16,7 @@ export class LoginRateLimiter {
    * @param {number} [options.lockoutMs] - Lockout duration after max attempts (default: 15 minutes)
    * @param {number} [options.globalMaxAttempts] - Max global failed attempts across all IPs (default: 50)
    * @param {string} [options.stateFilePath] - Optional path to persist rate limit state (survives restarts)
+   * @param {number} [options.maxKeys] - Most keys tracked at once; the oldest are dropped past it (default: 10000)
    */
   constructor({
     maxAttempts = 5,
@@ -23,7 +24,9 @@ export class LoginRateLimiter {
     lockoutMs = 15 * 60 * 1000,
     globalMaxAttempts = 50,
     stateFilePath = null,
+    maxKeys = 10_000,
   } = {}) {
+    this.maxKeys = maxKeys;
     this.maxAttempts = maxAttempts;
     this.windowMs = windowMs;
     this.lockoutMs = lockoutMs;
@@ -139,14 +142,24 @@ export class LoginRateLimiter {
 
   /**
    * Record a failed login attempt.
-   * @param {string} ip
+   * @param {string} ip A client address, or any other key (e.g. `id:<account identifier>`)
+   * @param {object} [options]
+   * @param {boolean} [options.global=true] Count toward the global failure cap. One
+   *   failed login recorded under two keys (client and account) passes false for
+   *   the second so it is not counted twice.
    */
-  recordFailure(ip) {
+  recordFailure(ip, { global = true } = {}) {
     const now = Date.now();
-    this.globalAttempts.push(now);
+    if (global) this.globalAttempts.push(now);
 
     let entry = this.ipMap.get(ip);
     if (!entry) {
+      // Keys are attacker-chosen (any address, any identifier), so the table is
+      // bounded: without this, a flood of distinct keys grows memory and the
+      // state file without limit. A Map iterates oldest-first.
+      while (this.ipMap.size >= this.maxKeys) {
+        this.ipMap.delete(this.ipMap.keys().next().value);
+      }
       entry = { attempts: [], lockedUntil: 0 };
       this.ipMap.set(ip, entry);
     }

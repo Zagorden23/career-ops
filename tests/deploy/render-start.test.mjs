@@ -1,5 +1,5 @@
 /**
- * deploy/tests/render-start.test.mjs
+ * tests/deploy/render-start.test.mjs
  * End-to-end supervisor lifecycle test:
  * Launches render-start.mjs, tests healthcheck, and verifies graceful shutdown on SIGTERM.
  */
@@ -12,7 +12,7 @@ import path from "node:path";
 import os from "node:os";
 import net from "node:net";
 import { fileURLToPath } from "node:url";
-import { hashPassword } from "../hash-password.mjs";
+import { hashPassword } from "../../deploy/hash-password.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const codeRoot = path.resolve(__dirname, "../..");

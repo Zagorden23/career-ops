@@ -4,13 +4,17 @@
  * Production entrypoint and supervisor for Career Ops on Render.
  *
  * Responsibilities:
- * 1. Validate environment (auth user, password hash, session secret).
- * 2. Validate persistent storage (/var/data/career-ops): ensures mount is present and writable.
+ * 1. Validate environment (owner login, account and sign-in settings).
+ * 2. Validate persistent storage: ensures the data root is present and writable.
  * 3. Seed initial user directory structure if first run on fresh volume.
- * 4. Start Next.js on an internal loopback port (127.0.0.1).
- * 5. Start the Auth & Security Gateway on 0.0.0.0:$PORT.
- * 6. Handle SIGTERM / SIGINT gracefully: forward signals, drain, reap child processes.
- * 7. Monitor child processes and fail closed if Next.js crashes.
+ * 4. Start the Auth & Security Gateway on 0.0.0.0:$PORT.
+ * 5. Start one Next.js process per signed-in account, on demand, each on an
+ *    internal loopback port and pointed at that account's own data directory.
+ * 6. Handle SIGTERM / SIGINT gracefully: stop accepting requests, stop the app
+ *    processes, flush storage, exit.
+ *
+ * An app process that dies is not fatal: it is forgotten and the account's next
+ * request starts a new one.
  */
 
 import { spawn } from "node:child_process";
@@ -26,6 +30,12 @@ import { createGateway } from "./gateway.mjs";
 import { verifyPersistentStorage } from "./storage-check.mjs";
 import { R2Client } from "./r2-client.mjs";
 import { R2StorageAdapter } from "./r2-storage-adapter.mjs";
+import { UserStore } from "./user-store.mjs";
+import { OtpStore } from "./otp-store.mjs";
+import { createEmailSender, createSmsSender } from "./notifiers.mjs";
+import { createGoogleOAuth } from "./google-oauth.mjs";
+import { WorkspaceManager, OWNER_ACCOUNT_ID, TENANTS_DIRNAME } from "./workspace-manager.mjs";
+import { loadAuthConfig, buildWorkerEnv } from "./auth-config.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const codeRoot = path.resolve(__dirname, "..");
@@ -58,6 +68,7 @@ if (!DATA_ROOT) {
     DATA_ROOT = "/var/data/career-ops";
   }
 }
+DATA_ROOT = path.resolve(DATA_ROOT);
 
 console.log("==================================================");
 console.log("Career Ops Production Supervisor Starting");
@@ -80,7 +91,21 @@ if (IS_PRODUCTION || process.env.CAREER_OPS_REQUIRE_AUTH === "1") {
   }
 }
 
-// 2. Storage validation (Requirement 4)
+// Account, sign-in and workspace settings
+let authConfig;
+let emailSender;
+let smsSender;
+try {
+  authConfig = loadAuthConfig(process.env);
+  emailSender = createEmailSender(process.env);
+  smsSender = createSmsSender(process.env);
+} catch (err) {
+  console.error(`FATAL: ${err.message}`);
+  process.exit(1);
+}
+for (const warning of authConfig.warnings) console.warn(`[auth] Warning: ${warning}`);
+
+// 2. Storage validation
 try {
   verifyPersistentStorage(DATA_ROOT);
   console.log(`[storage] Verified persistent storage at ${DATA_ROOT}`);
@@ -91,9 +116,10 @@ try {
 }
 
 // Initialize R2 client and adapter if configured
+let r2Client = null;
 let r2Adapter = null;
 if (USE_R2) {
-  const r2Client = new R2Client({
+  r2Client = new R2Client({
     accountId: R2_ACCOUNT_ID,
     accessKeyId: R2_ACCESS_KEY_ID,
     secretAccessKey: R2_SECRET_ACCESS_KEY,
@@ -106,25 +132,42 @@ if (USE_R2) {
   });
 }
 
-// 3. Find an available internal port for Next.js (loopback only)
-async function findFreePort(startPort = 3001) {
+/** An unused loopback port, chosen by the OS. */
+function findFreePort() {
   return new Promise((resolve, reject) => {
     const srv = net.createServer();
-    srv.listen(startPort, "127.0.0.1", () => {
-      const port = srv.address().port;
+    srv.once("error", reject);
+    srv.listen(0, "127.0.0.1", () => {
+      const { port } = srv.address();
       srv.close(() => resolve(port));
-    });
-    srv.on("error", () => {
-      // If busy, try next port
-      resolve(findFreePort(startPort + 1));
     });
   });
 }
 
-async function main() {
-  const internalPort = await findFreePort(PORT + 1);
-  console.log(`[supervisor] Next.js internal port: ${internalPort}`);
+/** Resolve once something accepts connections on the port; reject if the process dies first. */
+async function waitForPort(port, exited, timeoutMs) {
+  let gone = null;
+  exited.then((result) => {
+    gone = result;
+  });
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (gone) throw new Error(`app process exited before it was ready (code=${gone.code} signal=${gone.signal})`);
+    const open = await new Promise((resolve) => {
+      const socket = net.connect({ host: "127.0.0.1", port });
+      socket.once("connect", () => {
+        socket.destroy();
+        resolve(true);
+      });
+      socket.once("error", () => resolve(false));
+    });
+    if (open) return;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  throw new Error(`app process did not start listening within ${Math.round(timeoutMs / 1000)}s`);
+}
 
+async function main() {
   // Resolve Next.js binary
   const requireFromWeb = createRequire(path.join(webDir, "package.json"));
   let nextBinPath;
@@ -136,6 +179,9 @@ async function main() {
     console.error("Make sure npm dependencies are installed under web/.");
     process.exit(1);
   }
+  if (IS_PRODUCTION && !fs.existsSync(path.join(webDir, ".next", "BUILD_ID"))) {
+    console.warn("[supervisor] Warning: web/.next has no production build. Run `npm --prefix web run build`; until then every page will fail to start.");
+  }
 
   // Allowed hosts setup
   const allowedHosts = [
@@ -143,14 +189,8 @@ async function main() {
     ...(process.env.CAREER_OPS_WEB_ALLOWED_HOSTS || "").split(/[\s,]+/),
   ].filter(Boolean);
 
-  // Initialize Auth Store and Rate Limiter
-  const sessionDir = process.env.CAREER_OPS_SESSION_DIR || path.join(DATA_ROOT, ".sessions");
-  const authStore = new AuthStore({ sessionDir });
-  const rateLimiter = new LoginRateLimiter({
-    stateFilePath: path.join(sessionDir, "ratelimit.json"),
-  });
-
-  // If R2 storage is configured, hydrate local working tree before spawning services
+  // If R2 storage is configured, hydrate local working tree before anything
+  // reads it: the session and account files live in it too.
   if (r2Adapter) {
     try {
       console.log(`[storage] Hydrating data from Cloudflare R2 bucket '${R2_BUCKET_NAME}'...`);
@@ -163,53 +203,123 @@ async function main() {
     }
   }
 
-  // Child processes tracking
-  const children = [];
+  // Sessions, accounts and rate-limit state
+  const sessionDir = process.env.CAREER_OPS_SESSION_DIR || path.join(DATA_ROOT, ".sessions");
+  const authStore = new AuthStore({ sessionDir });
+  let userStore;
+  try {
+    userStore = new UserStore({ dir: sessionDir });
+  } catch (err) {
+    console.error(`FATAL: ${err.message}`);
+    process.exit(1);
+  }
+  const rateLimiter = new LoginRateLimiter({
+    stateFilePath: path.join(sessionDir, "ratelimit.json"),
+    // With many accounts a low global cap would let one noisy client lock
+    // everybody out; per-client and per-account limits do the real work.
+    globalMaxAttempts: 1000,
+  });
+
+  const google = authConfig.google ? createGoogleOAuth(authConfig.google) : null;
+  console.log(
+    `[auth] Sign-in methods: password${emailSender ? `, email code (${emailSender.name})` : ""}${
+      smsSender ? `, phone code (${smsSender.name})` : ""
+    }${google ? ", Google" : ""}. Sign-up: ${authConfig.signup.mode}${
+      authConfig.signup.allowlist.length ? " (allowlist)" : ""
+    }. Accounts: ${userStore.count()}.`,
+  );
+
   let isShuttingDown = false;
 
-  // 4. Start Next.js child process
-  console.log(`[supervisor] Spawning Next.js on 127.0.0.1:${internalPort}...`);
-  const nextEnv = {
-    ...process.env,
-    PORT: String(internalPort),
-    HOSTNAME: "127.0.0.1",
-    CAREER_OPS_ROOT: DATA_ROOT,
-    CAREER_OPS_CODE_ROOT: codeRoot,
-    CAREER_OPS_WEB_ALLOWED_HOSTS: [...allowedHosts, "127.0.0.1", "localhost"].join(","),
-    NEXT_TELEMETRY_DISABLED: "1",
-    NODE_ENV: IS_PRODUCTION ? "production" : "development",
-  };
+  // 3. One Next.js process per account, started on demand
+  async function startAppProcess({ key, root }) {
+    const port = await findFreePort();
+    const isOwner = key === OWNER_ACCOUNT_ID;
+    console.log(`[supervisor] Starting app process for ${key} on 127.0.0.1:${port}...`);
+    const proc = spawn(process.execPath, [nextBinPath, "start", "-p", String(port), "-H", "127.0.0.1"], {
+      cwd: webDir,
+      env: buildWorkerEnv(process.env, {
+        isOwner,
+        shareAiKeys: authConfig.shareAiKeys,
+        overrides: {
+          PORT: String(port),
+          HOSTNAME: "127.0.0.1",
+          CAREER_OPS_ROOT: root,
+          CAREER_OPS_CODE_ROOT: codeRoot,
+          CAREER_OPS_WEB_ALLOWED_HOSTS: [...allowedHosts, "127.0.0.1", "localhost"].join(","),
+          CAREER_OPS_GATEWAY: "1",
+          NEXT_TELEMETRY_DISABLED: "1",
+          NODE_ENV: IS_PRODUCTION ? "production" : "development",
+        },
+      }),
+      stdio: "inherit",
+      windowsHide: true,
+    });
 
-  const nextProcess = spawn(process.execPath, [nextBinPath, "start", "-p", String(internalPort), "-H", "127.0.0.1"], {
-    cwd: webDir,
-    env: nextEnv,
-    stdio: "inherit",
-    windowsHide: true,
-  });
+    const exited = new Promise((resolve) => {
+      proc.once("exit", (code, signal) => resolve({ code, signal }));
+      proc.once("error", (err) => resolve({ code: null, signal: null, error: err }));
+    });
+    exited.then(({ code, signal }) => {
+      if (!isShuttingDown) console.log(`[supervisor] App process for ${key} exited (code=${code} signal=${signal}).`);
+    });
 
-  children.push({ name: "next", proc: nextProcess });
+    const stop = async () => {
+      if (proc.exitCode !== null || proc.signalCode !== null) return;
+      proc.kill("SIGTERM");
+      const force = setTimeout(() => {
+        try {
+          proc.kill("SIGKILL");
+        } catch {
+          // already gone
+        }
+      }, 5000);
+      await exited;
+      clearTimeout(force);
+    };
 
-  nextProcess.on("exit", (code, signal) => {
-    console.log(`[supervisor] Next.js process exited with code=${code} signal=${signal}`);
-    if (!isShuttingDown) {
-      console.error("FATAL: Next.js process died unexpectedly. Initiating shutdown.");
-      shutdown(code || 1);
+    try {
+      await waitForPort(port, exited, 90_000);
+    } catch (err) {
+      await stop();
+      throw err;
     }
+    return { host: "127.0.0.1", port, stop, exited };
+  }
+
+  const workspaces = new WorkspaceManager({
+    ownerRoot: DATA_ROOT,
+    tenantsDir: path.join(DATA_ROOT, TENANTS_DIRNAME),
+    startWorker: startAppProcess,
+    maxWorkers: authConfig.maxWorkspaces,
+    idleMs: authConfig.workspaceIdleMs,
+    // A deleted account's files must also leave the bucket, or the next
+    // restart would download them again.
+    onWorkspaceRemoved: r2Adapter
+      ? async (root) => {
+          const removed = await r2Adapter.deletePrefix(path.relative(DATA_ROOT, root));
+          console.log(`[storage] Removed ${removed} objects of a deleted workspace from R2.`);
+        }
+      : null,
   });
 
-  // Optional PDF painter process if enabled
+  // Optional PDF painter process if enabled (serves the owner workspace)
+  const children = [];
   if (process.env.CAREER_OPS_ENABLE_PDF === "1") {
     const painterScript = path.join(codeRoot, "generate-pdf.mjs");
     if (fs.existsSync(painterScript)) {
       console.log("[supervisor] Starting PDF painter daemon...");
       const painter = spawn(process.execPath, [painterScript, "--pdf-server"], {
         cwd: codeRoot,
-        env: {
-          ...process.env,
-          CAREER_OPS_ROOT: DATA_ROOT,
-          CAREER_OPS_PDF_SHARED: "1",
-          CAREER_OPS_PDF_SERVER_PROCESS: "1",
-        },
+        env: buildWorkerEnv(process.env, {
+          isOwner: true,
+          shareAiKeys: true,
+          overrides: {
+            CAREER_OPS_ROOT: DATA_ROOT,
+            CAREER_OPS_PDF_SHARED: "1",
+            CAREER_OPS_PDF_SERVER_PROCESS: "1",
+          },
+        }),
         stdio: "ignore",
         windowsHide: true,
       });
@@ -217,17 +327,30 @@ async function main() {
       painter.on("exit", (code) => {
         console.log(`[supervisor] PDF painter exited with code=${code}`);
       });
+      painter.on("error", (err) => {
+        console.error(`[supervisor] PDF painter failed to start: ${err.message}`);
+      });
     }
   }
 
-  // 5. Start Gateway on public port
+  // 4. Start Gateway on public port
   const gateway = createGateway({
     authStore,
     rateLimiter,
     ownerUser: AUTH_USER || "admin",
     ownerPasswordHash: AUTH_PASSWORD_HASH || "scrypt:00:00",
-    upstreamHost: "127.0.0.1",
-    upstreamPort: internalPort,
+    ownerEmail: authConfig.ownerEmail,
+    userStore,
+    otpStore: new OtpStore({ secret: authConfig.secret }),
+    emailSender,
+    smsSender,
+    google,
+    signup: authConfig.signup,
+    defaultCountryCode: authConfig.defaultCountryCode,
+    smsHourlyCap: authConfig.smsHourlyCap,
+    secret: authConfig.secret,
+    publicUrl: authConfig.publicUrl,
+    workspaces,
     allowedHosts,
     isCloud: IS_CLOUD,
   });
@@ -236,21 +359,32 @@ async function main() {
     console.log(`[gateway] Production Auth & Security Gateway listening on 0.0.0.0:${PORT}`);
     console.log(`[gateway] Healthcheck available at http://0.0.0.0:${PORT}/healthz`);
   });
+  gatewayServer.on("error", (err) => {
+    console.error(`FATAL: Gateway could not listen on port ${PORT}: ${err.message}`);
+    process.exit(1);
+  });
 
-  // 6. Graceful shutdown handler
-  function shutdown(exitCode = 0) {
+  // 5. Graceful shutdown handler
+  async function shutdown(exitCode = 0) {
     if (isShuttingDown) return;
     isShuttingDown = true;
     console.log("[supervisor] Graceful shutdown initiated...");
+
+    // Whatever happens below, do not outlive the platform's grace period.
+    const deadline = setTimeout(() => {
+      console.warn("[supervisor] Shutdown deadline reached; exiting.");
+      process.exit(exitCode || 1);
+    }, 25_000);
+    if (deadline.unref) deadline.unref();
 
     // Stop accepting new gateway connections
     gatewayServer.close(() => {
       console.log("[gateway] Gateway server closed.");
     });
+    if (gatewayServer.closeIdleConnections) gatewayServer.closeIdleConnections();
 
-    // Send SIGTERM to children
     for (const { name, proc } of children) {
-      if (proc && !proc.killed) {
+      if (proc.exitCode === null && proc.signalCode === null) {
         console.log(`[supervisor] Sending SIGTERM to ${name} (PID ${proc.pid})...`);
         try {
           proc.kill("SIGTERM");
@@ -260,50 +394,26 @@ async function main() {
       }
     }
 
-    // Flush R2 storage if active
-    let r2FlushDone = !r2Adapter;
-    if (r2Adapter) {
-      (async () => {
-        try {
-          console.log("[supervisor] Flushing R2 storage on shutdown...");
-          await r2Adapter.flush();
-          console.log("[supervisor] R2 storage flush complete.");
-        } catch (err) {
-          console.error(`[r2-storage] Flush error on shutdown: ${err.message}`);
-        } finally {
-          r2FlushDone = true;
-        }
-      })();
+    try {
+      await workspaces.shutdown();
+      console.log("[supervisor] All app processes stopped.");
+    } catch (err) {
+      console.error(`[supervisor] Error stopping app processes: ${err.message}`);
     }
 
-    // Force kill if not exited within 8 seconds
-    const killTimeout = setTimeout(() => {
-      console.warn("[supervisor] Force killing remaining children with SIGKILL...");
-      for (const { name, proc } of children) {
-        if (proc && !proc.killed) {
-          try {
-            proc.kill("SIGKILL");
-          } catch {
-            // ignore
-          }
-        }
+    // Flush R2 storage after the app processes have stopped writing
+    if (r2Adapter) {
+      try {
+        console.log("[supervisor] Flushing R2 storage on shutdown...");
+        await r2Adapter.flush();
+        console.log("[supervisor] R2 storage flush complete.");
+      } catch (err) {
+        console.error(`[r2-storage] Flush error on shutdown: ${err.message}`);
       }
-      process.exit(exitCode || 1);
-    }, 8000);
+    }
 
-    if (killTimeout.unref) killTimeout.unref();
-
-    // Check when all children exit and R2 flush completes
-    const checkInterval = setInterval(() => {
-      const alive = children.some(({ proc }) => proc && !proc.killed && proc.exitCode === null);
-      if (!alive && r2FlushDone) {
-        clearInterval(checkInterval);
-        clearTimeout(killTimeout);
-        console.log("[supervisor] All child processes reaped and storage synchronized. Exiting cleanly.");
-        process.exit(exitCode);
-      }
-    }, 200);
-    if (checkInterval.unref) checkInterval.unref();
+    console.log("[supervisor] Storage synchronized. Exiting cleanly.");
+    process.exit(exitCode);
   }
 
   process.on("SIGTERM", () => {

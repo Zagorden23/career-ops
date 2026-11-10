@@ -224,17 +224,17 @@ Implemented on branch `feature/render-private-deployment`:
 - **Auth & Security Gateway** (`deploy/gateway.mjs`): Independent reverse proxy binding to `0.0.0.0:$PORT`.
   - Next.js binds strictly to `127.0.0.1:<internal_port>`. No direct unauthenticated access to Next.js is possible.
   - Public `/healthz` endpoint returning `{ "status": "ok" }`.
-  - Single-owner login page (`deploy/login-page.mjs`), self-contained with dark-mode styling matching Career Ops.
+  - Auth pages (`deploy/auth-pages.mjs`), self-contained with dark-mode styling matching Career Ops (sign in, sign up, email/phone OTP verification, password reset, and account management).
   - Password hashing via `crypto.scrypt` with 16-byte random salt and constant-time verification (`deploy/hash-password.mjs`).
   - Login rate limiter with sliding window, progressive delays, and 15-minute lockout (`deploy/rate-limiter.mjs`).
-  - Durable session storage in `/var/data/career-ops/.sessions/sessions.json` with atomic writes (`deploy/auth-store.mjs`).
+  - Durable session and user storage in `/var/data/career-ops/.sessions/` with atomic writes (`deploy/auth-store.mjs`, `deploy/user-store.mjs`).
   - Strict security headers on every response: CSP, HSTS, X-Frame-Options: DENY, nosniff, Referrer-Policy, Permissions-Policy (`deploy/security-headers.mjs`).
   - CSRF protection: SameSite cookies, Sec-Fetch-Site checking, Origin matching, one-time form tokens.
   - Cloud-mode capability gate: `apply/*` routes intercepted and return HTTP 501 in cloud mode.
 - **Production Supervisor** (`deploy/render-start.mjs`):
   - Validates environment variables and credentials before boot.
   - Persistent storage check (`deploy/storage-check.mjs`): verifies mount at `/var/data/career-ops`, runs write-read probe, seeds standard directories (`data/`, `config/`, `modes/`, `reports/`, `output/`, `.sessions/`), and fails closed if storage is unavailable.
-  - Spawns and supervises Next.js on internal loopback port.
+  - Spawns and supervises Next.js on internal loopback port (with per-account workspace isolation via `deploy/workspace-manager.mjs`).
   - Traps `SIGTERM` and `SIGINT`, closes gateway, terminates child processes, and reaps all processes within 8 seconds.
 - **Deployment Configuration & Documentation**:
   - `render.yaml`: Blueprint with Web service, 10 GB persistent disk, build & start commands, health check.
@@ -243,6 +243,8 @@ Implemented on branch `feature/render-private-deployment`:
   - `SECURITY_AUDIT.md`: Complete security specification and audit report.
 
 ### Automated Test Verification
-- `deploy/tests/deployment-security.test.mjs`: 6 test suites covering password hashing, session lifecycle, rate limiting, security headers, gateway perimeter, CSRF, and storage probing (PASS).
-- `deploy/tests/render-start.test.mjs`: Full supervisor lifecycle, healthcheck polling, and graceful shutdown on SIGTERM (PASS).
+- `tests/deploy/accounts.test.mjs`: Multi-user accounts, email/password sign-up & sign-in, email OTP, phone SMS OTP, Google OAuth with PKCE, password reset, account deletion, and per-user workspace isolation (PASS).
+- `tests/deploy/deployment-security.test.mjs`: 6 test suites covering password hashing, session lifecycle, rate limiting, security headers, gateway perimeter, CSRF, and storage probing (PASS).
+- `tests/deploy/r2-storage.test.mjs`: Cloudflare R2 storage client, hydration, background sync, and workspace prefix deletion (PASS).
+- `tests/deploy/render-start.test.mjs`: Full supervisor lifecycle, healthcheck polling, and graceful shutdown on SIGTERM (PASS).
 

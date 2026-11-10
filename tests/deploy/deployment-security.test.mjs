@@ -1,5 +1,5 @@
 /**
- * deploy/tests/deployment-security.test.mjs
+ * tests/deploy/deployment-security.test.mjs
  * Comprehensive integration and security test suite for Career Ops Render deployment.
  *
  * Verifies:
@@ -23,12 +23,12 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import http from "node:http";
-import { hashPassword, verifyPassword } from "../hash-password.mjs";
-import { AuthStore } from "../auth-store.mjs";
-import { LoginRateLimiter } from "../rate-limiter.mjs";
-import { getSecurityHeaders, CSP_HEADER_VALUE } from "../security-headers.mjs";
-import { createGateway } from "../gateway.mjs";
-import { verifyPersistentStorage, REQUIRED_USER_DIRS } from "../storage-check.mjs";
+import { hashPassword, verifyPassword } from "../../deploy/hash-password.mjs";
+import { AuthStore } from "../../deploy/auth-store.mjs";
+import { LoginRateLimiter } from "../../deploy/rate-limiter.mjs";
+import { getSecurityHeaders, CSP_HEADER_VALUE } from "../../deploy/security-headers.mjs";
+import { createGateway } from "../../deploy/gateway.mjs";
+import { verifyPersistentStorage, REQUIRED_USER_DIRS } from "../../deploy/storage-check.mjs";
 
 test("1. Password hashing and timing-safe verification", () => {
   const secret = "SuperSecretPassword123!#";
@@ -220,10 +220,30 @@ test("5. Gateway End-to-End Authentication & Security Perimeter", async () => {
     assert.ok(csrfMatch, "Must extract CSRF token from login HTML");
     const loginCsrfToken = csrfMatch[1];
 
+    // The form token is bound to the browser it was served to: the page sets a
+    // pre-session cookie, and the token only verifies alongside it.
+    const preCookie = (loginPageRes.headers.get("set-cookie") || "").split(";")[0];
+    assert.ok(preCookie.startsWith("career_ops_pre="), "Login page must set the pre-session cookie");
+
+    // 5E2. A form token replayed without its browser cookie (the shape of a
+    // login-CSRF post from another site) is refused even with the right password.
+    const replayedRes = await fetch(`${baseUrl}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        username: "admin",
+        password: ownerPassword,
+        csrf_token: loginCsrfToken,
+      }),
+      redirect: "manual",
+    });
+    assert.equal(replayedRes.status, 401, "A form token without its browser cookie must be rejected");
+    assert.equal(replayedRes.headers.get("set-cookie")?.includes("career_ops_session=") ?? false, false);
+
     // 5F. Attempt login with bad password -> 401
     const badLoginRes = await fetch(`${baseUrl}/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Cookie: preCookie },
       body: new URLSearchParams({
         username: "admin",
         password: "WrongPassword!",
@@ -233,19 +253,14 @@ test("5. Gateway End-to-End Authentication & Security Perimeter", async () => {
     });
     assert.equal(badLoginRes.status, 401, "Invalid password must return 401");
 
-    // 5G. Fetch new login page (since token is one-time use) and login with correct credentials
-    const loginPageRes2 = await fetch(`${baseUrl}/login`);
-    const loginHtml2 = await loginPageRes2.text();
-    const csrfMatch2 = loginHtml2.match(/name="csrf_token" value="([a-f0-9]+)"/);
-    const validLoginCsrfToken = csrfMatch2[1];
-
+    // 5G. Login with correct credentials from the same browser
     const goodLoginRes = await fetch(`${baseUrl}/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Cookie: preCookie },
       body: new URLSearchParams({
         username: "admin",
         password: ownerPassword,
-        csrf_token: validLoginCsrfToken,
+        csrf_token: loginCsrfToken,
       }),
       redirect: "manual",
     });
@@ -260,8 +275,9 @@ test("5. Gateway End-to-End Authentication & Security Perimeter", async () => {
     assert.ok(setCookie.includes("SameSite=Lax"), "Cookie must be SameSite=Lax");
 
     // Extract cookie value for subsequent requests
-    const cookieHeader = setCookie
-      .split(",")
+    const cookieHeader = goodLoginRes.headers
+      .getSetCookie()
+      .filter((c) => !/Max-Age=0/.test(c))
       .map((c) => c.split(";")[0].trim())
       .join("; ");
 
@@ -324,6 +340,16 @@ test("5. Gateway End-to-End Authentication & Security Perimeter", async () => {
     assert.equal(logoutRes.headers.get("location"), "/login");
     const logoutCookie = logoutRes.headers.get("set-cookie");
     assert.ok(logoutCookie.includes("Max-Age=0"), "Logout must expire cookie");
+
+    // 5N. A GET to /logout must not end a session: another site could fire one
+    // with a link or an image tag.
+    const sessionBefore = authStore.createSession("admin", { uid: "owner" });
+    const getLogoutRes = await fetch(`${baseUrl}/logout`, {
+      headers: { Cookie: `career_ops_session=${sessionBefore.id}` },
+      redirect: "manual",
+    });
+    assert.equal(getLogoutRes.status, 200, "GET /logout must ask, not act");
+    assert.ok(authStore.getSession(sessionBefore.id), "GET /logout must leave the session alive");
 
     // Subsequent request with old cookie must fail
     const postLogoutRes = await fetch(`${baseUrl}/api/status`, {
