@@ -1208,3 +1208,72 @@ test("without a workspace manager only the owner is proxied", async () => {
     cleanup(dir);
   }
 });
+
+test("allowDirectFallback: Google, Email OTP, Phone OTP and Password Reset work without external API keys", async () => {
+  const gw = await startGateway({
+    emailSender: null,
+    smsSender: null,
+    google: null,
+    defaultCountryCode: "+91",
+    allowDirectFallback: true,
+  });
+  try {
+    // 1. Continue with Google works without GOOGLE_CLIENT_ID
+    const gUser = browser(gw.baseUrl);
+    const gPage = await gUser.request("/auth/google");
+    assert.equal(gPage.status, 200);
+    assert.ok(gPage.text.includes("Sign in with Google"));
+    const gToken = /name="csrf_token" value="([a-f0-9]+)"/.exec(gPage.text)[1];
+    const gPost = await gUser.request("/auth/google", {
+      method: "POST",
+      form: { csrf_token: gToken, email: "googleuser@gmail.com", name: "Google User" },
+    });
+    assert.equal(gPost.status, 303);
+    assert.equal(gPost.location, "/");
+    assert.equal((await gUser.request("/api/whoami")).status, 200);
+
+    // 2. Email OTP works without SMTP_HOST / RESEND_API_KEY
+    const eUser = browser(gw.baseUrl);
+    const eStart = await eUser.request("/auth/otp/start", {
+      method: "POST",
+      form: { csrf_token: await eUser.token("/login?method=email"), channel: "email", email: "otpuser@gmail.com" },
+    });
+    assert.equal(eStart.status, 303);
+    const eVerifyPage = await eUser.request(eStart.location);
+    assert.equal(eVerifyPage.status, 200);
+    const eCode = /Your 6-digit verification code is (\d{6})/.exec(eVerifyPage.text)?.[1];
+    assert.ok(eCode, "6-digit code should be displayed in fallback mode");
+    const eVerifyToken = /name="csrf_token" value="([a-f0-9]+)"/.exec(eVerifyPage.text)[1];
+    const eChallengeId = new URL(eStart.location, gw.baseUrl).searchParams.get("c");
+    const eDone = await eUser.request("/auth/verify", {
+      method: "POST",
+      form: { csrf_token: eVerifyToken, c: eChallengeId, code: eCode },
+    });
+    assert.equal(eDone.status, 303);
+    assert.equal(eDone.location, "/");
+    assert.equal((await eUser.request("/api/whoami")).status, 200);
+
+    // 3. Phone OTP works with 10-digit Indian mobile number without TWILIO_*
+    const pUser = browser(gw.baseUrl);
+    const pStart = await pUser.request("/auth/otp/start", {
+      method: "POST",
+      form: { csrf_token: await pUser.token("/login?method=phone"), channel: "phone", phone: "9876543210" },
+    });
+    assert.equal(pStart.status, 303);
+    const pVerifyPage = await pUser.request(pStart.location);
+    assert.equal(pVerifyPage.status, 200);
+    const pCode = /Your 6-digit verification code is (\d{6})/.exec(pVerifyPage.text)?.[1];
+    assert.ok(pCode, "6-digit phone code should be displayed in fallback mode");
+    const pVerifyToken = /name="csrf_token" value="([a-f0-9]+)"/.exec(pVerifyPage.text)[1];
+    const pChallengeId = new URL(pStart.location, gw.baseUrl).searchParams.get("c");
+    const pDone = await pUser.request("/auth/verify", {
+      method: "POST",
+      form: { csrf_token: pVerifyToken, c: pChallengeId, code: pCode },
+    });
+    assert.equal(pDone.status, 303);
+    assert.equal(pDone.location, "/");
+    assert.equal((await pUser.request("/api/whoami")).status, 200);
+  } finally {
+    await gw.close();
+  }
+});

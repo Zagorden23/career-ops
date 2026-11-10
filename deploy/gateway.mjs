@@ -32,6 +32,7 @@ import {
   renderAuthPage,
   renderVerifyPage,
   renderForgotPage,
+  renderGooglePage,
   renderAccountPage,
   renderMessagePage,
 } from "./auth-pages.mjs";
@@ -86,6 +87,7 @@ export function createGateway({
   upstreamPort = 3001,
   allowedHosts = [],
   isCloud = false,
+  allowDirectFallback = false,
   appName = "Career Ops",
 }) {
   if (!ownerUser) throw new Error("ownerUser is required for gateway");
@@ -109,11 +111,11 @@ export function createGateway({
   // without it only the owner can sign in, exactly as before.
   const methods = {
     accounts: Boolean(userStore),
-    email: Boolean(userStore && emailSender),
-    phone: Boolean(userStore && smsSender),
-    google: Boolean(userStore && google),
+    email: Boolean(userStore && (emailSender || allowDirectFallback)),
+    phone: Boolean(userStore && (smsSender || allowDirectFallback)),
+    google: Boolean(userStore && (google || allowDirectFallback)),
     signup: Boolean(userStore) && signupMode === "open",
-    reset: Boolean(userStore && emailSender),
+    reset: Boolean(userStore && (emailSender || allowDirectFallback)),
   };
 
   // Normalized set of allowed hosts
@@ -383,9 +385,17 @@ export function createGateway({
     /** Deliver a code. Throws when the provider refuses it. */
     const deliverCode = async (challenge, code) => {
       if (challenge.channel === "phone") {
-        await smsSender.send({ to: challenge.destination, text: codeSms({ code, appName }) });
+        if (smsSender) {
+          await smsSender.send({ to: challenge.destination, text: codeSms({ code, appName }) });
+        } else if (allowDirectFallback && challenge.payload) {
+          challenge.payload.fallbackCode = code;
+        }
       } else {
-        await emailSender.send({ to: challenge.destination, ...codeEmail({ code, purpose: challenge.purpose, appName }) });
+        if (emailSender) {
+          await emailSender.send({ to: challenge.destination, ...codeEmail({ code, purpose: challenge.purpose, appName }) });
+        } else if (allowDirectFallback && challenge.payload) {
+          challenge.payload.fallbackCode = code;
+        }
       }
     };
 
@@ -567,12 +577,16 @@ export function createGateway({
         channel === "phone"
           ? Boolean(userStore.findByPhone(destination))
           : destination === normalizedOwnerEmail || Boolean(userStore.findByEmail(destination));
-      const eligible = known || (channel === "phone" ? phoneSignupAllowed() : emailSignupAllowed(destination));
+      const senderConfigured = channel === "phone" ? Boolean(smsSender) : Boolean(emailSender);
+      const isOwnerWithoutSender = !senderConfigured && destination === normalizedOwnerEmail;
+      const eligible =
+        !isOwnerWithoutSender && (known || (channel === "phone" ? phoneSignupAllowed() : emailSignupAllowed(destination)));
 
-      const { id, code } = otpStore.create({ channel, destination, purpose: "login", dead: !eligible });
+      const payload = {};
+      const { id, code } = otpStore.create({ channel, destination, purpose: "login", payload, dead: !eligible });
       if (eligible) {
         try {
-          await deliverCode({ channel, destination, purpose: "login" }, code);
+          await deliverCode({ channel, destination, purpose: "login", payload }, code);
         } catch (err) {
           console.error(`[gateway] Could not send ${channel} code: ${err.message}`);
           otpStore.discard(id);
@@ -634,8 +648,12 @@ export function createGateway({
         if (!challenge) return redirect("/login?m=expired", 302);
         const extra = {};
         const waitParam = Number.parseInt(url.searchParams.get("wait") || "", 10);
-        if (url.searchParams.get("sent")) extra.notice = "A new code is on its way.";
-        else if (Number.isInteger(waitParam) && waitParam > 0) {
+        if (challenge.payload?.fallbackCode) {
+          extra.notice = `Your 6-digit verification code is ${challenge.payload.fallbackCode}`;
+        } else if (url.searchParams.get("sent")) {
+          extra.notice = "A new code is on its way.";
+        }
+        if (Number.isInteger(waitParam) && waitParam > 0) {
           extra.error = `Please wait ${formatWait(Math.min(waitParam, 86400))} before requesting another code.`;
         } else if (url.searchParams.get("limit")) {
           extra.error = "No more codes can be sent for this attempt. Start again from the sign-in page.";
@@ -752,10 +770,11 @@ export function createGateway({
       recordSend("email", email);
 
       const user = userStore.findByEmail(email);
-      const { id, code } = otpStore.create({ channel: "email", destination: email, purpose: "reset", dead: !user });
+      const payload = {};
+      const { id, code } = otpStore.create({ channel: "email", destination: email, purpose: "reset", payload, dead: !user });
       if (user) {
         try {
-          await emailSender.send({ to: email, ...codeEmail({ code, purpose: "reset", appName }) });
+          await deliverCode({ channel: "email", destination: email, purpose: "reset", payload }, code);
         } catch (err) {
           console.error(`[gateway] Could not send reset email: ${err.message}`);
           otpStore.discard(id);
@@ -769,12 +788,49 @@ export function createGateway({
     // 7. Continue with Google
     // ------------------------------------------------------------------
     if (pathname === "/auth/google") {
+      if (!google && allowDirectFallback && userStore) {
+        if (method === "GET") {
+          return sendHtml(200, renderGooglePage({ csrfToken: formToken() }));
+        }
+        if (method === "POST") {
+          const form = await acceptForm((error) => sendHtml(401, renderGooglePage({ csrfToken: formToken(), error })));
+          if (!form) return;
+          const rawEmail = String(form.email || "").slice(0, 254);
+          const name = typeof form.name === "string" ? form.name.slice(0, 80) : "";
+          const email = normalizeEmail(rawEmail);
+          const fail = (status, error) =>
+            sendHtml(status, renderGooglePage({ csrfToken: formToken(), error, values: { email: rawEmail, name } }));
+          if (!email) return fail(400, "Enter a valid Gmail or Google email address.");
+          if (email === normalizedOwnerEmail) {
+            return fail(403, "Use the owner password form to sign in to the owner account.");
+          }
+          const sub = `google:${email}`;
+          let user = userStore.findByGoogleSub(sub) || userStore.findByEmail(email);
+          if (user) {
+            const patch = {};
+            if (!user.googleSub) patch.googleSub = sub;
+            if (!user.name && name) patch.name = name;
+            if (!user.emailVerified) patch.emailVerified = true;
+            if (Object.keys(patch).length) user = userStore.update(user.id, patch) || user;
+          } else {
+            if (!emailSignupAllowed(email)) {
+              return fail(403, methods.signup ? LOGIN_MESSAGES.not_allowed.error : LOGIN_MESSAGES.signup_closed.error);
+            }
+            user = userStore.create({ email, emailVerified: true, googleSub: sub, name });
+          }
+          startSession(accountFromUser(user));
+          return redirect("/");
+        }
+        res.writeHead(405, { Allow: "GET, POST" });
+        res.end();
+        return;
+      }
       if (method !== "GET") {
         res.writeHead(405, { Allow: "GET" });
         res.end();
         return;
       }
-      if (!methods.google) return redirect("/login?m=google_unavailable", 302);
+      if (!methods.google || !google) return redirect("/login?m=google_unavailable", 302);
       const state = crypto.randomBytes(24).toString("base64url");
       const nonce = crypto.randomBytes(24).toString("base64url");
       const { verifier, challenge } = pkcePair();

@@ -346,13 +346,14 @@ async function main() {
     smsSender,
     google,
     signup: authConfig.signup,
-    defaultCountryCode: authConfig.defaultCountryCode,
+    defaultCountryCode: authConfig.defaultCountryCode || "+91",
     smsHourlyCap: authConfig.smsHourlyCap,
     secret: authConfig.secret,
     publicUrl: authConfig.publicUrl,
     workspaces,
     allowedHosts,
     isCloud: IS_CLOUD,
+    allowDirectFallback: true,
   });
 
   const gatewayServer = gateway.listen(PORT, "0.0.0.0", () => {

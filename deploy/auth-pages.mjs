@@ -354,6 +354,34 @@ export function renderForgotPage({ csrfToken, error = null, notice = null, value
   });
 }
 
+export function renderGooglePage({ csrfToken, error = null, values = {} }) {
+  return shell({
+    title: "Sign in with Google",
+    subtitle: "Continue to Career Ops with your Google account",
+    body: `<div class="card">
+      <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem">
+        ${GOOGLE_MARK}
+        <h2 style="margin-bottom:0">Sign in with Google</h2>
+      </div>
+      <p class="lead">Enter your Gmail or Google Workspace email address to sign in or create your private Career Ops workspace.</p>
+      ${alerts({ error, notice: null })}
+      <form method="POST" action="/auth/google" autocomplete="on">
+        ${csrfField(csrfToken)}
+        <div class="field">
+          <label for="email">Gmail or Google email</label>
+          <input type="email" id="email" name="email" required autofocus autocomplete="email" inputmode="email" placeholder="you@gmail.com" value="${escapeHtml(values.email || "")}">
+        </div>
+        <div class="field">
+          <label for="name">Full name <span style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</span></label>
+          <input type="text" id="name" name="name" autocomplete="name" maxlength="80" placeholder="Your name" value="${escapeHtml(values.name || "")}">
+        </div>
+        <button type="submit" class="btn btn-submit">${GOOGLE_MARK}<span>Continue with Google</span></button>
+      </form>
+      <p class="switch"><a href="/login">Back to all sign-in options</a></p>
+    </div>`,
+  });
+}
+
 /**
  * The signed-in account page.
  * @param {object} options
