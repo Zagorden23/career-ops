@@ -248,6 +248,7 @@ async function main() {
           PORT: String(port),
           HOSTNAME: "127.0.0.1",
           PATH: workerPath,
+          CAREER_OPS_CLI: process.env.CAREER_OPS_CLI || "antigravity",
           CAREER_OPS_ROOT: root,
           CAREER_OPS_CODE_ROOT: codeRoot,
           CAREER_OPS_WEB_ALLOWED_HOSTS: [...allowedHosts, "127.0.0.1", "localhost"].join(","),

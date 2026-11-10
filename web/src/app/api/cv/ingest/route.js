@@ -108,8 +108,8 @@ export async function POST(req) {
           return Response.json({ error: error instanceof Error ? error.message : "Couldn't read that CV file." }, { status: 400 });
         }
       } else {
-        if (resolved.spec.id !== "claude") {
-          return Response.json({ error: "Word upload needs Claude Code — upload a PDF or TeX file instead." }, { status: 400 });
+        if (resolved.spec.id !== "claude" && resolved.spec.id !== "antigravity") {
+          return Response.json({ error: "Word upload needs Claude Code or Antigravity CLI — upload a PDF or TeX file instead." }, { status: 400 });
         }
         const dir = fs.mkdtempSync(path.join(os.tmpdir(), "career-ops-cv-"));
         tempFile = path.join(dir, "cv.docx"); // outside the repo, basename-only

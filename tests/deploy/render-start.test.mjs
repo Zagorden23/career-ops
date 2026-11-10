@@ -122,11 +122,16 @@ test("7. Supervisor startup, healthcheck, and graceful SIGTERM shutdown", async 
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-test("8. Cloud CLI shim converts extracted PDF and LaTeX CV text via spawnHeadlessCli + cvOutputReader", async () => {
+test("8. Cloud Antigravity CLI shim (agy) converts extracted PDF and LaTeX CV text via spawnHeadlessCli + cvOutputReader", async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "co-cli-shim-test-"));
-  const binDir = ensureCloudCliBin(path.join(tmpDir, ".career-ops-bin"));
-  const binPath = path.join(binDir, process.platform === "win32" ? "claude.cmd" : "claude");
-  assert.ok(fs.existsSync(binPath), "ensureCloudCliBin must create the claude shim in binDir");
+  const rawBinDir = path.join(tmpDir, ".career-ops-bin");
+  fs.mkdirSync(rawBinDir, { recursive: true });
+  // Seed a legacy claude shim file to confirm ensureCloudCliBin cleans it up
+  fs.writeFileSync(path.join(rawBinDir, "claude"), "legacy", "utf8");
+  const binDir = ensureCloudCliBin(rawBinDir);
+  const binPath = path.join(binDir, process.platform === "win32" ? "agy.cmd" : "agy");
+  assert.ok(fs.existsSync(binPath), "ensureCloudCliBin must create the agy (Antigravity CLI) shim in binDir");
+  assert.equal(fs.existsSync(path.join(binDir, "claude")), false, "ensureCloudCliBin must remove legacy claude shim");
 
   const samplePdfText = [
     "Priya Sharma",
@@ -150,27 +155,12 @@ test("8. Cloud CLI shim converts extracted PDF and LaTeX CV text via spawnHeadle
   assert.equal(cvReadiness(converted.markdown).scoreable, true);
   assert.ok(converted.seed.roles.length >= 1);
 
-  const advisorScope = scopeFrom("Read,Glob,Grep");
   const prompt = `Emit ONLY the markdown between <<cv:start>> and <<cv:end>>, then <<cv:seed>>{...}.\n\nSOURCE (the user's CV text or LaTeX source — convert it):\n"""\n${samplePdfText}\n"""`;
-  const args = [
-    "-p",
-    prompt,
-    "--output-format",
-    "stream-json",
-    "--verbose",
-    "--include-partial-messages",
-    "--permission-mode",
-    "acceptEdits",
-    "--strict-mcp-config",
-    "--allowedTools",
-    advisorScope.allowed,
-    "--disallowedTools",
-    advisorScope.disallowed,
-  ];
+  const args = ["-p", prompt];
 
   let streamed = "";
   const reader = cvOutputReader({
-    cliId: "claude",
+    cliId: "antigravity",
     onText: (chunk) => {
       streamed += chunk;
     },
@@ -180,7 +170,7 @@ test("8. Cloud CLI shim converts extracted PDF and LaTeX CV text via spawnHeadle
     binPath,
     args,
     { cwd: tmpDir, env: process.env },
-    { cliId: "claude", capabilities: CAPS.localReadOnly },
+    { cliId: "antigravity", capabilities: CAPS.localReadOnly },
   );
 
   const exitCode = await new Promise((resolve, reject) => {

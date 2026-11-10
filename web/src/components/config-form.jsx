@@ -76,6 +76,7 @@ export function ConfigForm() {
   // state mid-render.
   useEffect(() => {
     if (clis && cliId && !readSavedCliId()) persistCliId(cliId);
+    else if (clis && cliId && !keepIfInstalled(readSavedCliId(), clis)) persistCliId(cliId);
   }, [clis, cliId]);
 
   function save() {
@@ -116,7 +117,7 @@ export function ConfigForm() {
             <p className="mb-1 text-sm text-muted">
               career-ops uses an AI tool you already have — signed in, your own usage, nothing to paste.
             </p>
-            <p className="mb-3 text-xs text-faint">Works with Claude Code, Codex, OpenCode and more — free ones work great.</p>
+            <p className="mb-3 text-xs text-faint">Works with Antigravity CLI, Codex, OpenCode and more — free ones work great.</p>
             {clis === null ? (
               <div className="flex items-center gap-2 text-sm text-muted">
                 <Loader2 className="size-4 animate-spin" /> Checking what&apos;s on your computer…
@@ -193,11 +194,11 @@ export function ConfigForm() {
                 })}
                 {installed.length === 0 && (
                   <p className="rounded-xl border border-dashed border-border bg-surface/30 p-4 text-xs text-muted">
-                    No supported CLI found on your PATH. Install one (e.g. Claude Code, Gemini CLI, OpenCode) to get started.
+                    No supported CLI found on your PATH. Install one (e.g. Antigravity CLI, Gemini CLI, OpenCode) to get started.
                   </p>
                 )}
                 <p className="mt-2 text-[11px] leading-relaxed text-faint">
-                  Best on <span className="text-muted">Claude Code</span> (live progress, the agentic apply + AI search,
+                  Best on <span className="text-muted">Antigravity CLI</span> (live progress, the agentic apply + AI search,
                   reliable evaluation persistence). Other CLIs work for the core flows with reduced features.
                 </p>
               </div>

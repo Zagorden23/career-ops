@@ -2,16 +2,16 @@
 /**
  * deploy/cloud-cli-shim.mjs
  *
- * Built-in headless CLI responder for cloud/container deployments (such as Render)
- * where no local desktop AI CLI binary (`claude`, `codex`, etc.) is installed on PATH.
+ * Built-in headless Antigravity CLI (`agy`) responder for cloud/container deployments
+ * (such as Render) where no local desktop AI CLI binary is installed on PATH.
  *
  * When placed at the end of PATH via `ensureCloudCliBin()`, any real installed CLI
- * takes precedence; when none is installed on the host, `findBin("claude")` resolves
+ * takes precedence; when none is installed on the host, `findBin("agy")` resolves
  * to this shim so:
- *   - `/api/clis` reports a working runtime
+ *   - `/api/clis` reports `Antigravity CLI` (`agy -p`) as installed and remembered
  *   - `/api/cv/ingest` converts PDF, TeX, DOCX, and pasted CVs into structured `cv.md`
  *   - `/api/assistant`, `/api/explore/ai`, `/api/run`, and `/api/apply/prefill` work out-of-the-box
- *   - Optional API keys (`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`)
+ *   - Optional API keys (`GEMINI_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`)
  *     are used automatically when configured, with deterministic local fallback when not.
  */
 
@@ -23,7 +23,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 
 /**
- * Create the shim directory with executable wrappers for `claude` on POSIX and Windows.
+ * Create the shim directory with executable wrappers for `agy` (Antigravity CLI)
+ * on POSIX and Windows, cleaning up any legacy `claude` shim files in the same dir.
  *
  * @param {string} binDir
  * @returns {string} The resolved binDir
@@ -32,8 +33,17 @@ export function ensureCloudCliBin(binDir) {
   const resolvedDir = path.resolve(binDir);
   fs.mkdirSync(resolvedDir, { recursive: true });
 
+  // Remove any legacy claude shim files from older deployments so `agy` is the sole cloud shim
+  for (const legacy of ["claude", "claude.cmd", "claude.ps1", "claude-shim.mjs"]) {
+    try {
+      fs.rmSync(path.join(resolvedDir, legacy), { force: true });
+    } catch {
+      /* ignore */
+    }
+  }
+
   const shimUrl = pathToFileURL(__filename).href;
-  const entryPath = path.join(resolvedDir, "claude-shim.mjs");
+  const entryPath = path.join(resolvedDir, "agy-shim.mjs");
   const entrySource = [
     "#!/usr/bin/env node",
     `import { runCliShim } from ${JSON.stringify(shimUrl)};`,
@@ -42,8 +52,8 @@ export function ensureCloudCliBin(binDir) {
   ].join("\n");
   fs.writeFileSync(entryPath, entrySource, { mode: 0o755 });
 
-  // POSIX executable (`claude`)
-  const posixPath = path.join(resolvedDir, "claude");
+  // POSIX executable (`agy`)
+  const posixPath = path.join(resolvedDir, "agy");
   fs.writeFileSync(posixPath, entrySource, { mode: 0o755 });
   try {
     fs.chmodSync(posixPath, 0o755);
@@ -53,20 +63,20 @@ export function ensureCloudCliBin(binDir) {
   }
 
   // Windows `.cmd` and `.ps1` shims (matches `web/src/lib/cli-launch.mjs` pattern)
-  const cmdPath = path.join(resolvedDir, "claude.cmd");
+  const cmdPath = path.join(resolvedDir, "agy.cmd");
   fs.writeFileSync(
     cmdPath,
-    `@ECHO off\r\n"${process.execPath}" "%~dp0claude-shim.mjs" %*\r\n`,
+    `@ECHO off\r\n"${process.execPath}" "%~dp0agy-shim.mjs" %*\r\n`,
     "utf8",
   );
 
-  const ps1Path = path.join(resolvedDir, "claude.ps1");
+  const ps1Path = path.join(resolvedDir, "agy.ps1");
   fs.writeFileSync(
     ps1Path,
     [
       "#!/usr/bin/env pwsh",
       "$basedir=Split-Path $MyInvocation.MyCommand.Definition -Parent",
-      '& node "$basedir/claude-shim.mjs" $args',
+      '& node "$basedir/agy-shim.mjs" $args',
       "exit $LASTEXITCODE",
       "",
     ].join("\n"),
@@ -594,6 +604,25 @@ export function buildDeterministicResponse(prompt) {
     ].join("\n");
   }
 
+  // 4b. CV Studio single-bullet rewrite (`Rewrite one bullet of a CV.`)
+  if (prompt.includes("Rewrite one bullet of a CV.")) {
+    const currentMatch = prompt.match(/Current tailored bullet:\s*("(?:[^"\\]|\\.)*")/);
+    const origMatch = prompt.match(/Original bullet from the candidate's CV:\s*("(?:[^"\\]|\\.)*")/);
+    let bullet = "Delivered production features with measurable reliability and performance improvements";
+    try {
+      if (origMatch) bullet = JSON.parse(origMatch[1]);
+      else if (currentMatch) bullet = JSON.parse(currentMatch[1]);
+    } catch {
+      /* keep fallback */
+    }
+    const cleaned = String(bullet)
+      .replace(/[\u2013\u2014]/g, "-")
+      .replace(/\.+\s*$/, "")
+      .trim()
+      .slice(0, 195);
+    return `${JSON.stringify({ bullet: cleaned })}\n`;
+  }
+
   // 5. Assistant Chat
   return buildAssistantResponse(prompt, process.cwd());
 }
@@ -1027,7 +1056,7 @@ export function buildAssistantResponse(prompt = "", cwd = process.cwd()) {
  */
 export async function runCliShim(argv) {
   if (argv.includes("--help") || argv.includes("-h")) {
-    process.stdout.write("Usage: claude -p <prompt> [--output-format stream-json]\n");
+    process.stdout.write("Usage: agy -p <prompt> [--output-format stream-json]\n");
     return;
   }
 

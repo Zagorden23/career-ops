@@ -22,6 +22,8 @@ import { StatusWriteError, writeAssistantStatus } from "@/lib/assistant-status-w
 import { postAssistantWrite } from "@/lib/assistant-file-write.mjs";
 import { cn } from "@/lib/cn";
 import { CONFIG_KEY, subscribeConfig } from "@/lib/config-events.mjs";
+import { keepIfInstalled } from "@/lib/cli-pick.mjs";
+import { persistCliId, readSavedCliId } from "@/lib/saved-cli";
 
 /**
  * ── message model: messages are PART arrays so a live worker card can render
@@ -291,6 +293,16 @@ export function AssistantConsole() {
       }
     }
     read();
+    fetch("/api/clis")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d || !Array.isArray(d.clis)) return;
+        const saved = readSavedCliId();
+        if (keepIfInstalled(saved, d.clis)) return;
+        const remembered = typeof d.remembered === "string" ? keepIfInstalled(d.remembered, d.clis) : null;
+        if (remembered) persistCliId(remembered);
+      })
+      .catch(() => {});
     return subscribeConfig(window, read);
   }, []);
 
