@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ExternalLink, Plus, Check, Loader2, ShieldQuestion, Sparkles, Coins, CirclePause } from "lucide-react";
+import { ExternalLink, MapPin, Plus, Check, Loader2, ShieldQuestion, Sparkles, Coins, CirclePause } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { instrumentSerif } from "@/lib/fonts";
 import { ATS_LABEL } from "@/lib/explore";
@@ -36,6 +36,16 @@ function Logo({ company }) {
     />
   );
 }
+
+// Distinct, readable colour per ATS so the source is scannable at a glance.
+const ATS_TONE = {
+  greenhouse: "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
+  lever: "border-sky-500/30 bg-sky-500/10 text-sky-800 dark:text-sky-300",
+  ashby: "border-violet-500/30 bg-violet-500/10 text-violet-800 dark:text-violet-300",
+  workday: "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300",
+  smartrecruiters: "border-rose-500/30 bg-rose-500/10 text-rose-800 dark:text-rose-300",
+};
+const ATS_TONE_DEFAULT = "border-border text-muted";
 
 // What a running worker is doing on this exact posting → the live CTA label.
 const WORKER_LABEL = { evaluate: "Evaluating…", pdf: "Preparing CV…", research: "Researching…", apply: "Filling…" };
@@ -74,9 +84,14 @@ export function DiscoveryCard({ offer, inPipeline, evaluatedN }) {
         <a href={offer.url} target="_blank" rel="noopener noreferrer" className="block min-w-0 flex-1 max-sm:min-h-[44px]">
           <h3 className={`${instrumentSerif.className} truncate text-[17px] leading-tight text-foreground transition-colors group-hover:text-brand-text`}>{offer.title}</h3>
           <p className="mt-0.5 truncate text-[13px] text-muted">
-            {offer.company}
-            {(offer.location || employer) && <span className="text-faint"> · {offer.location || "Location unknown"}</span>}
+            <strong className="font-bold text-foreground">{offer.company}</strong>
           </p>
+          {(offer.location || employer) && (
+            <p className="mt-1 flex min-w-0 items-center gap-1 text-[12px]">
+              <MapPin className="size-3 shrink-0 text-rose-600 dark:text-rose-400" />
+              <span className="truncate font-semibold italic text-teal-700 dark:text-teal-300">{offer.location || "Location unknown"}</span>
+            </p>
+          )}
         </a>
         <a
           href={offer.url}
@@ -91,8 +106,8 @@ export function DiscoveryCard({ offer, inPipeline, evaluatedN }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-        <span className="rounded border border-border px-1.5 py-0.5 font-medium text-muted">{ATS_LABEL[offer.ats] ?? EMPLOYER_LABEL[offer.ats] ?? offer.ats}</span>
-        {(fresh || employer) && <span className="text-faint">{fresh || "Posting date unknown"}</span>}
+        <span className={cn("rounded border px-1.5 py-0.5 font-semibold", ATS_TONE[offer.ats] ?? ATS_TONE_DEFAULT)}>{ATS_LABEL[offer.ats] ?? EMPLOYER_LABEL[offer.ats] ?? offer.ats}</span>
+        {(fresh || employer) && <span className="font-medium italic text-sky-700 dark:text-sky-300">{fresh || "Posting date unknown"}</span>}
         {unverified && (
           <span
             className="inline-flex items-center gap-1 rounded border border-amber-500/25 bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-800 dark:text-amber-300"
@@ -103,7 +118,7 @@ export function DiscoveryCard({ offer, inPipeline, evaluatedN }) {
         )}
         {offer.matchedKeyword && (
           <span className="text-faint" title="Keyword match — not yet scored. Evaluate to get an A–F fit score.">
-            · matched <span className="text-brand-text">{offer.matchedKeyword}</span>
+            · matched <mark className="rounded bg-brand/20 px-1 font-bold not-italic text-brand-text">{offer.matchedKeyword}</mark>
           </span>
         )}
         {offer.fit && (

@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, Plus, Compass } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { CHINA_SOURCES } from "@/lib/employer-preset.mjs";
 import {
+  buildLocationFilterTokens,
   inferHierarchyFromAllowChips,
   matchesLocationHierarchy,
 } from "@/lib/location-catalog.mjs";
@@ -33,6 +34,16 @@ export function ResultsList({ offers }) {
   const [locFilter, setLocFilter] = useState(() =>
     inferHierarchyFromAllowChips(filters?.allow || []),
   );
+
+  // Keep the picker in sync when the scan filters change from elsewhere (the
+  // filter builder, a URL, a re-scan). Our own edits already match, so skip them.
+  const allowKey = (filters?.allow || []).join("\u0001");
+  useEffect(() => {
+    const mine = buildLocationFilterTokens(locFilter).allow.join("\u0001");
+    if (allowKey === mine) return;
+    setLocFilter(inferHierarchyFromAllowChips(filters?.allow || []));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allowKey]);
 
   const view = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -71,8 +82,8 @@ export function ResultsList({ offers }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <div>
-          <p className="text-sm text-foreground">
-            <span className="font-semibold">{offers.length}</span> {isAi ? `candidate${offers.length === 1 ? "" : "s"}` : employer ? `match${offers.length === 1 ? "" : "es"}` : `fresh role${offers.length === 1 ? "" : "s"}`}
+          <p className="text-sm font-medium italic text-foreground">
+            <span className="font-bold text-brand-text">{locFilter.country ? view.length : offers.length}</span>{locFilter.country ? <span className="text-faint"> / {offers.length}</span> : null} {isAi ? `candidate${offers.length === 1 ? "" : "s"}` : employer ? `match${offers.length === 1 ? "" : "es"}` : `fresh role${offers.length === 1 ? "" : "s"}`}
             <CostBadge kind={isAi ? "spend" : "free-network"} size="xs" className="ml-2 align-middle" />
           </p>
           <p className="text-[12px] text-faint">
@@ -139,9 +150,9 @@ export function ResultsList({ offers }) {
           {locFilter.country && !running && !isAi && (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-brand/25 bg-brand/5 px-3 py-2 text-xs">
               <span className="text-muted">
-                Showing <strong className="text-foreground">{view.length}</strong> of {offers.length} roles matching{" "}
-                <strong className="text-foreground">{[locFilter.city, locFilter.state, locFilter.country].filter(Boolean).join(" → ")}</strong>
-                {locFilter.includeRemote ? " (+ Remote)" : ""}.
+                Showing <strong className="font-bold text-emerald-700 dark:text-emerald-400">{view.length}</strong> of <span className="font-semibold text-sky-700 dark:text-sky-400">{offers.length}</span> roles matching{" "}
+                <strong className="font-bold italic text-violet-700 dark:text-violet-300">{[locFilter.city, locFilter.state, locFilter.country].filter(Boolean).join(" → ")}</strong>
+                {locFilter.includeRemote ? <em className="font-medium text-amber-700 dark:text-amber-400"> (+ Remote, region-eligible only)</em> : ""}.
               </span>
               <button
                 type="button"

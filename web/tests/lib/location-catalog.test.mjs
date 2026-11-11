@@ -100,3 +100,31 @@ test("inferLocationHierarchyFromText and inferHierarchyFromAllowChips detect Ind
   assert.equal(fromChips.city, "Bengaluru");
   assert.equal(fromChips.includeRemote, true);
 });
+
+
+test("India filter rejects foreign and region-restricted postings (no leaks)", () => {
+  const india = { country: "India", state: "", city: "", includeRemote: true };
+  const reject = [
+    "Remote - US", "Remote (USA)", "Remote, EMEA", "Remote - Europe", "Remote - Canada",
+    "Remote - California", "Remote - Romania", "Remote (EST)", "Indianapolis, IN",
+    "Jakarta, Indonesia", "Cambridge, MA, USA", "London, UK", "Singapore", "Americas",
+    "North America - Remote", "",
+  ];
+  for (const loc of reject) assert.equal(matchesLocationHierarchy(loc, india), false, loc);
+  const accept = [
+    "Bengaluru, Karnataka, India", "Pune", "Hyderabad, IN, India", "Remote", "Remote - India",
+    "Remote - APAC", "Anywhere", "Worldwide", "San Francisco, USA; Bengaluru, India",
+  ];
+  for (const loc of accept) assert.equal(matchesLocationHierarchy(loc, india), true, loc);
+});
+
+test("includeRemote=false drops plain Remote; State/City selections require that State/City", () => {
+  const noRemote = { country: "India", state: "", city: "", includeRemote: false };
+  assert.equal(matchesLocationHierarchy("Remote", noRemote), false);
+  assert.equal(matchesLocationHierarchy("Remote - India", noRemote), true);
+  const pune = { country: "India", state: "Maharashtra", city: "Pune", includeRemote: false };
+  assert.equal(matchesLocationHierarchy("Pune, India", pune), true);
+  assert.equal(matchesLocationHierarchy("India", pune), false);
+  assert.equal(matchesLocationHierarchy("Bengaluru, India", pune), false);
+  assert.equal(matchesLocationHierarchy("Pune, Oregon, USA", pune), false);
+});

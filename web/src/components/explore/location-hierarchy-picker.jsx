@@ -39,7 +39,7 @@ export function LocationHierarchyPicker({
   return (
     <div className="rounded-xl border border-border bg-surface/50 p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold italic text-foreground">
           <Globe className="size-3.5 text-brand-text" />
           Filter by Country &rarr; State / Region &rarr; Company Office City
         </span>
@@ -57,7 +57,7 @@ export function LocationHierarchyPicker({
       <div className={compact ? "grid gap-2 sm:grid-cols-4" : "grid gap-2.5 sm:grid-cols-3"}>
         {/* 1. Country */}
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-muted">
+          <label className="mb-1 block text-[11px] font-bold text-sky-700 dark:text-sky-300">
             1. Country
           </label>
           <select
@@ -79,7 +79,7 @@ export function LocationHierarchyPicker({
 
         {/* 2. State / Province */}
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-muted">
+          <label className="mb-1 block text-[11px] font-bold text-violet-700 dark:text-violet-300">
             2. State / Province
           </label>
           <select
@@ -102,7 +102,7 @@ export function LocationHierarchyPicker({
 
         {/* 3. Office / Branch City */}
         <div>
-          <label className="mb-1 block text-[11px] font-medium text-muted">
+          <label className="mb-1 block text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
             3. Office / Branch City
           </label>
           <select

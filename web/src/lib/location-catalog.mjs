@@ -640,9 +640,106 @@ export function buildLocationFilterTokens({
   };
 }
 
+const TOKEN_RE_CACHE = new Map();
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** Whole-word (Unicode-aware) containment — "Indiana" must NOT hit "India". */
+function hasToken(lower, token) {
+  const t = String(token || "").trim().toLowerCase();
+  if (t.length < 2) return false;
+  let re = TOKEN_RE_CACHE.get(t);
+  if (!re) {
+    re = new RegExp(`(?<![\\p{L}\\p{N}])${escapeRe(t)}(?![\\p{L}\\p{N}])`, "u");
+    TOKEN_RE_CACHE.set(t, re);
+  }
+  return re.test(lower);
+}
+
+// Aliases that are ISO-ish fragments and collide with ordinary words/places
+// ("IND" ⊂ Indonesia/Indianapolis, ", IN" = Indiana). Never used for matching.
+const AMBIGUOUS_ALIASES = new Set(["ind", "in"]);
+
+function countryAliases(entry) {
+  return [entry.country, ...entry.aliases].filter(
+    (a) =>
+      /^[\p{L}][\p{L} .'’-]*[\p{L}.]$/u.test(a) &&
+      !AMBIGUOUS_ALIASES.has(a.toLowerCase()),
+  );
+}
+
+/** Catalog countries explicitly NAMED in a location string (by country alias). */
+function explicitCountries(lower) {
+  return WORLD_LOCATION_CATALOG.filter((c) =>
+    countryAliases(c).some((a) => hasToken(lower, a)),
+  );
+}
+
+/** Any country/state/city of one catalog entry named in the text. */
+function mentionsCountryGeography(lower, entry) {
+  if (countryAliases(entry).some((a) => hasToken(lower, a))) return true;
+  return entry.states.some(
+    (s) =>
+      s.aliases.some((a) => a.length > 2 && hasToken(lower, a)) ||
+      s.cities.some((c) => c.aliases.some((a) => hasToken(lower, a))),
+  );
+}
+
+const REMOTE_RE = /\b(remote|anywhere|worldwide|work from home|wfh|distributed|telecommute)\b/i;
+
+// Regions a "Remote - <region>" posting may be restricted to, and which
+// catalog countries fall inside each.
+const REGION_COUNTRIES = {
+  apac: ["IN", "SG", "AU", "JP"],
+  apj: ["IN", "SG", "AU", "JP"],
+  "asia pacific": ["IN", "SG", "AU", "JP"],
+  "asia-pacific": ["IN", "SG", "AU", "JP"],
+  asia: ["IN", "SG", "JP", "AE"],
+  "south asia": ["IN"],
+  emea: ["GB", "DE", "NL", "IE", "FR", "ES", "PL", "CH", "AE"],
+  europe: ["GB", "DE", "NL", "IE", "FR", "ES", "PL", "CH"],
+  eu: ["DE", "NL", "IE", "FR", "ES", "PL"],
+  "middle east": ["AE"],
+  "north america": ["US", "CA"],
+  americas: ["US", "CA", "BR"],
+  latam: ["BR"],
+  "latin america": ["BR"],
+  oceania: ["AU"],
+};
+
+const GENERIC_REMOTE_FILLER =
+  /\b(remote|remotely|anywhere|worldwide|global|globally|work from home|wfh|home|hybrid|fully|flexible|distributed|virtual|telecommute|only|first|eligible|based|location|locations|or|and|the|any|within|in|from|of|all|countries|country|region|regions|roles?|positions?)\b/giu;
+
 /**
- * Client-side predicate: check whether a discovered job offer's location string
- * matches the selected `{ country, state, city, includeRemote }` hierarchy.
+ * A Remote posting is only relevant to the selected country when it is
+ * geography-free ("Remote", "Anywhere") or names the selected country / a
+ * region that contains it. "Remote - US", "Remote, EMEA", "Remote - Romania",
+ * "Remote (EST)" are all rejected.
+ */
+function isRemoteEligible(lower, entry) {
+  for (const [region, codes] of Object.entries(REGION_COUNTRIES)) {
+    if (hasToken(lower, region) && !codes.includes(entry.code)) return false;
+  }
+  let rest = lower;
+  for (const region of Object.keys(REGION_COUNTRIES)) {
+    rest = rest.replace(new RegExp(`(?<![\\p{L}\\p{N}])${escapeRe(region)}(?![\\p{L}\\p{N}])`, "gu"), " ");
+  }
+  rest = rest.replace(GENERIC_REMOTE_FILLER, " ").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  return rest === "";
+}
+
+/**
+ * Client-side predicate: does a discovered job's location string match the
+ * selected `{ country, state, city, includeRemote }` hierarchy?
+ *
+ * Strict by design — a Country → State → City selection must never let
+ * foreign postings through:
+ *  - tokens match on whole words ("Indiana" ≠ "India", "Indonesia" ≠ "IND");
+ *  - a posting that explicitly names ANOTHER country and not the selected one
+ *    is rejected even if a city name collides ("Cambridge, USA" vs UK);
+ *  - State/City selections require that State/City — a bare "India" is not
+ *    enough;
+ *  - Remote only passes (when `includeRemote`) if it is geography-free or
+ *    names the selected country / a containing region.
  *
  * @param {string} offerLocation
  * @param {{ country?: string, state?: string, city?: string, includeRemote?: boolean }} selection
@@ -653,46 +750,29 @@ export function matchesLocationHierarchy(
   { country = "", state = "", city = "", includeRemote = false } = {},
 ) {
   if (!country) return true;
-  const loc = String(offerLocation || "").trim();
-  const lower = loc.toLowerCase();
+  const lower = String(offerLocation || "").trim().toLowerCase();
+  if (!lower) return false;
 
-  if (includeRemote && /\bremote\b/i.test(loc)) {
-    // If a specific country is chosen alongside includeRemote, reject postings
-    // explicitly restricted to a DIFFERENT country (e.g. "Remote - US" when India is selected)
-    const countryEntry = getCountryEntry(country);
-    if (countryEntry) {
-      const otherCountries = WORLD_LOCATION_CATALOG.filter(
-        (c) => c.code !== countryEntry.code,
-      );
-      const matchesSelectedCountry = buildLocationFilterTokens({
-        country,
-        state,
-        city,
-        includeRemote: false,
-      }).allow.some((tok) => lower.includes(tok.toLowerCase()));
-      if (matchesSelectedCountry) return true;
-      const mentionsOtherCountry = otherCountries.some(
-        (other) =>
-          other.country.toLowerCase() !== countryEntry.country.toLowerCase() &&
-          (lower.includes(other.country.toLowerCase()) ||
-            other.states.some((s) =>
-              s.cities.some((c) => lower.includes(c.name.toLowerCase())),
-            )),
-      );
-      if (!mentionsOtherCountry) return true;
-    } else {
-      return true;
-    }
+  const entry = getCountryEntry(country);
+  if (!entry) return hasToken(lower, country);
+
+  const { allow } = buildLocationFilterTokens({ country, state, city, includeRemote: false });
+  const explicit = explicitCountries(lower);
+  const selectedNamed = explicit.some((c) => c.code === entry.code);
+  const otherNamed = explicit.some((c) => c.code !== entry.code);
+
+  if (allow.some((tok) => hasToken(lower, tok))) {
+    return selectedNamed || !otherNamed;
   }
 
-  if (!loc) return false;
-  const { allow } = buildLocationFilterTokens({
-    country,
-    state,
-    city,
-    includeRemote: false,
-  });
-  return allow.some((tok) => lower.includes(tok.toLowerCase()));
+  if (includeRemote && REMOTE_RE.test(lower)) {
+    if (selectedNamed || mentionsCountryGeography(lower, entry)) {
+      return !otherNamed || selectedNamed;
+    }
+    return !otherNamed && isRemoteEligible(lower, entry);
+  }
+
+  return false;
 }
 
 /**
@@ -760,7 +840,7 @@ export function inferLocationHierarchyFromText(text = "") {
  */
 export function inferHierarchyFromAllowChips(allow = []) {
   if (!Array.isArray(allow) || allow.length === 0) {
-    return { country: "", state: "", city: "", includeRemote: true };
+    return { country: "", state: "", city: "", includeRemote: false };
   }
   const lowerSet = new Set(allow.map((a) => String(a).trim().toLowerCase()));
   const includeRemote = lowerSet.has("remote");
