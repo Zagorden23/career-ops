@@ -5,6 +5,8 @@ import { careerOpsRoot, portalsConfigPath } from "@/lib/career-ops";
 import { resolveCodeRoot } from "@/lib/core/code-root.mjs";
 import { loadPortalsDocument, watchedCompanies } from "@/lib/portals-config.mjs";
 
+export const metadata = { title: "Portals" };
+
 export const dynamic = "force-dynamic";
 
 function readWatched() {

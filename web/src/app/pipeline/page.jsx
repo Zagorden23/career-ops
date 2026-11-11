@@ -7,6 +7,8 @@ import { pipelineTab } from "@/lib/pipeline-navigation.mjs";
 import { scorePosting } from "@/lib/core/inbox-rank.mjs";
 import { applyInboxFit, loadFitTargets } from "@/lib/inbox-fit-profile.mjs";
 
+export const metadata = { title: "Pipeline" };
+
 export const dynamic = "force-dynamic"; // always read fresh local files
 
 // Tracker tabs show the inbox only as a count, so they get the count and not

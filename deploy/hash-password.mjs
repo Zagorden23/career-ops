@@ -15,6 +15,7 @@
 
 import crypto from "node:crypto";
 import readline from "node:readline";
+import { isMainModule } from "../lib/is-main-module.mjs";
 
 const SCRYPT_OPTIONS = {
   N: 16384, // CPU/memory cost
@@ -202,7 +203,7 @@ async function runCli() {
   console.log("");
 }
 
-if (process.argv[1] && (process.argv[1].endsWith("hash-password.mjs") || process.argv[1].endsWith("hash-password"))) {
+if (isMainModule(import.meta.url)) {
   runCli().catch((err) => {
     console.error(`Error: ${err.message}`);
     process.exit(1);

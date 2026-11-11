@@ -5,6 +5,8 @@ import { readInbox, readApplications, careerOpsRoot } from "@/lib/career-ops";
 import { exploreSnapshot } from "@/lib/explore-snapshot.mjs";
 import { DEFAULT_FILTERS } from "@/lib/explore";
 
+export const metadata = { title: "Explore" };
+
 // Read live data at request time so a bare checkout (or `next build` with no
 // CAREER_OPS_ROOT) never fails — discovery seeds are best-effort.
 export const dynamic = "force-dynamic";

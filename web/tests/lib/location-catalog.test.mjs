@@ -128,3 +128,20 @@ test("includeRemote=false drops plain Remote; State/City selections require that
   assert.equal(matchesLocationHierarchy("Bengaluru, India", pune), false);
   assert.equal(matchesLocationHierarchy("Pune, Oregon, USA", pune), false);
 });
+
+
+test("picker lists have no duplicate entries (duplicate React keys left stale options)", () => {
+  for (const c of WORLD_LOCATION_CATALOG) {
+    const states = getStatesForCountry(c.country).map((s) => s.state);
+    assert.equal(new Set(states).size, states.length, `${c.country} states`);
+    const all = getCitiesForState(c.country, "").map((x) => x.name);
+    assert.equal(new Set(all).size, all.length, `${c.country} all cities`);
+    for (const s of c.states) {
+      const names = getCitiesForState(c.country, s.state).map((x) => x.name);
+      assert.equal(new Set(names).size, names.length, `${c.country}/${s.state}`);
+    }
+  }
+  // Shared NCR cities are still reachable from the country-wide list.
+  const india = getCitiesForState("India", "").map((x) => x.name);
+  for (const n of ["Gurugram", "Noida", "Faridabad", "Bengaluru"]) assert.ok(india.includes(n), n);
+});

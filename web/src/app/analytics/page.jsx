@@ -8,6 +8,8 @@ import { AnalyticsShell, ProgressPanel, StatsPanel } from "@/components/analytic
 import { FunnelRates } from "@/components/analytics/funnel-rates";
 import { SearchInsights } from "@/components/analytics/search-insights";
 
+export const metadata = { title: "Analytics" };
+
 export const dynamic = "force-dynamic";
 
 export default async function Analytics({ searchParams }) {

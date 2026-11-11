@@ -102,7 +102,7 @@ export function LocationHierarchyPicker({
 
         {/* 3. Office / Branch City */}
         <div>
-          <label className="mb-1 block text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+          <label className="mb-1 block text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
             3. Office / Branch City
           </label>
           <select

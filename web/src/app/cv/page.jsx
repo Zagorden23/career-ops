@@ -1,5 +1,7 @@
 import { CvEditor } from "@/components/cv-editor";
 
+export const metadata = { title: "CV" };
+
 export const dynamic = "force-dynamic";
 
 export default function CvPage() {

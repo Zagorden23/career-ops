@@ -565,7 +565,17 @@ export function getCitiesForState(countryName, stateName) {
   const entry = getCountryEntry(countryName);
   if (!entry) return [];
   if (!stateName) {
-    return entry.states.flatMap((s) => s.cities);
+    // Cities such as Gurugram/Noida/Faridabad sit under two states; list each once
+    // (duplicates also produced duplicate React keys → stale <option>s in the picker).
+    const seen = new Set();
+    return entry.states
+      .flatMap((s) => s.cities)
+      .filter((c) => {
+        const key = c.name.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
   }
   const lower = String(stateName).trim().toLowerCase();
   const stateObj = entry.states.find(

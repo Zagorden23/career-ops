@@ -13,6 +13,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { listTree } from "../lib/walk-tree.mjs";
+import { isMainModule } from "../lib/is-main-module.mjs";
 import { fileURLToPath } from "node:url";
 import { R2Client } from "./r2-client.mjs";
 
@@ -67,21 +69,13 @@ function collectFiles(sourceDir) {
         fileList.push(rel.replace(/\\/g, "/"));
       }
     } else if (stat.isDirectory()) {
-      const walk = (dir, prefix) => {
-        const items = fs.readdirSync(dir);
-        for (const item of items) {
-          if (EXCLUDE_FILE_PATTERNS.some((p) => p.test(item))) continue;
-          const itemPath = path.join(dir, item);
-          const relItem = prefix ? `${prefix}/${item}` : item;
-          const s = fs.statSync(itemPath);
-          if (s.isDirectory()) {
-            walk(itemPath, relItem);
-          } else if (s.isFile()) {
-            fileList.push(relItem.replace(/\\/g, "/"));
-          }
+      const allFiles = listTree(full);
+      for (const abs of allFiles) {
+        const itemRel = path.relative(sourceDir, abs).replace(/\\/g, "/");
+        if (!EXCLUDE_FILE_PATTERNS.some((p) => p.test(itemRel))) {
+          fileList.push(itemRel);
         }
-      };
-      walk(full, rel.replace(/\\/g, "/"));
+      }
     }
   }
 
@@ -176,7 +170,7 @@ async function runCli() {
   await migrateDataToR2({ client, sourceDir });
 }
 
-if (process.argv[1] && process.argv[1].endsWith("r2-migrate.mjs")) {
+if (isMainModule(import.meta.url)) {
   runCli().catch((err) => {
     console.error("Migration failed:", err);
     process.exit(1);

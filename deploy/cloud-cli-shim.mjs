@@ -19,6 +19,7 @@ import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { isMainModule } from "../lib/is-main-module.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -639,9 +640,36 @@ export function buildDeterministicResponse(prompt) {
  * @returns {string}
  */
 export function buildAssistantResponse(prompt = "", cwd = process.cwd()) {
-  const rawPrompt = String(prompt || "");
+  const userMessage = extractLatestUserMessage(prompt);
+  let cvOnFile = "";
+  try {
+    cvOnFile = fs.readFileSync(path.join(cwd, "cv.md"), "utf8");
+  } catch {
+    cvOnFile = "";
+  }
+  const hasCv = cvOnFile.trim().length > 40;
 
-  // Extract latest user message from `User: ...\nAssistant:`
+  // Greetings, "how does X work" product questions and off-topic chatter are
+  // answered first so they are never mistaken for CV / salary / job intents.
+  const general = buildGeneralAssistantReply(userMessage, { hasCv });
+  if (general) return general;
+
+  const core = buildAssistantResponseCore(prompt, cwd);
+  // Without a saved CV the personalised templates fall back to generic
+  // defaults — say so instead of presenting them as the user's own profile.
+  if (!hasCv && /^### (Targeted Job Search|Tailored Cover Letter|Personalized Interview|2026 )/.test(core)) {
+    return [
+      "> ℹ️ **No CV saved yet**, so this uses generic defaults rather than your real profile. Upload yours on **CV** (`/cv`) for answers tailored to you.",
+      "",
+      core,
+    ].join("\n");
+  }
+  return core;
+}
+
+/** Latest user turn from a `User: …\nAssistant:` transcript (or the raw prompt). */
+function extractLatestUserMessage(prompt) {
+  const rawPrompt = String(prompt || "");
   let userMessage = rawPrompt.trim();
   const convoTail = rawPrompt.match(/User:\s*([\s\S]*?)\nAssistant:\s*$/);
   if (convoTail && convoTail[1]) {
@@ -652,6 +680,139 @@ export function buildAssistantResponse(prompt = "", cwd = process.cwd()) {
       userMessage = allUsers[allUsers.length - 1][1].trim();
     }
   }
+  return userMessage;
+}
+
+const ASSISTANT_MENU = [
+  '- *"Find jobs in India / Pune / London"* — I launch a filtered **Explore** scan',
+  '- *"Review my CV"* or *"rewrite my summary"*',
+  '- *"Write a cover letter for a data analyst at Stripe"*',
+  '- *"Prepare me for an interview at Google"*',
+  '- *"What salary should I ask for?"*',
+  '- *"How does the evaluation score work?"*, *"How do I export a PDF?"*',
+];
+
+/**
+ * Deterministic answers for things that are not career-coaching templates:
+ * greetings, product how-tos, and off-topic chatter. Returns "" when the
+ * message should fall through to the intent router.
+ */
+function buildGeneralAssistantReply(userMessage, { hasCv }) {
+  const q = String(userMessage || "").toLowerCase().replace(/\s+/g, " ").trim();
+  if (!q) {
+    return ["### How can I help?", "", "Try one of these:", ...ASSISTANT_MENU].join("\n");
+  }
+
+  if (/^(hi+|hello+|hey+|hola|namaste|yo|good (morning|afternoon|evening)|thanks?|thank you|ok(ay)?)\b[\s!.,?]*$/i.test(q)) {
+    const thanks = /^(thanks?|thank you|ok)/i.test(q);
+    return [
+      thanks ? "You're welcome!" : "Hi! I'm your Career-Ops co-pilot.",
+      "",
+      hasCv
+        ? "Your CV is on file, so I can tailor answers to it. Try:"
+        : "No CV is saved yet — upload one on **CV** (`/cv`) and I can tailor everything to you. Meanwhile, try:",
+      ...ASSISTANT_MENU,
+    ].join("\n");
+  }
+
+  if (/\b(weather|temperature|joke|funny|riddle|poem|song lyrics|movie|football|cricket score|ipl|stock price|bitcoin|crypto price|recipe|horoscope|capital of|prime minister|president of)\b/.test(q)) {
+    return [
+      "That's outside what I can help with — I'm focused on your job search.",
+      "",
+      "Here's what I'm good at:",
+      ...ASSISTANT_MENU,
+    ].join("\n");
+  }
+
+  if (/\b(a[-–\s]?f\b|a to f|fit score|evaluation score|letter grade|evaluat\w*|score mean|how.*scor\w+ (work|calculated))/.test(q) && /\b(how|what|explain|mean|work|calculated|read|interpret|grade|score)\b/.test(q) && !/\b(my (cv|resume)|ats score)\b/.test(q)) {
+    return [
+      "### How evaluation works",
+      "",
+      "Click **Evaluate** on any role (Explore card or Pipeline) and Career-Ops reads the posting against your `cv.md` and profile, then writes a report:",
+      "- **Blocks A–F** — role summary, how your CV matches (and the gaps), plus the supporting analysis for the role.",
+      "- **Block G** — legitimacy signals, so ghost or stale postings are flagged.",
+      "- **A score out of 5** with a verdict; roles scoring below **4.0** are the weaker fits, so spend your time on the higher ones.",
+      "",
+      "Evaluate uses AI tokens; **Add to pipeline** and the Explore scan are free. The report opens from **Pipeline** (`/pipeline`).",
+    ].join("\n");
+  }
+
+  if (/\b(what is|what's|whats|about|explain|tell me about)\b.*\bcareer[- ]?ops\b|\bwhat can you do\b|\bwhat do you do\b|\bhow does (this|it|the app) work\b|\bfeatures\b|^help\??$/.test(q)) {
+    return [
+      "### What Career-Ops does",
+      "",
+      "An AI job-search workspace:",
+      "- **Explore** (`/explore`) — free live scans of company career boards, filterable by **Country → State → Office city**.",
+      "- **Pipeline** (`/pipeline`) — your inbox of roles; **Evaluate** scores a role against your CV.",
+      "- **CV** (`/cv`) — upload/edit your CV, tailor it for a role, export PDF.",
+      "- **Follow-ups**, **Scheduled scans**, **Portals** and **Documents** keep the rest of the search organised.",
+      "",
+      "You can also just ask me:",
+      ...ASSISTANT_MENU,
+    ].join("\n");
+  }
+
+  if (/\b(export|download|print|generate|save|get)\b.*\b(pdf|docx|latex|tex)\b|\b(pdf|docx)\b.*\b(export|download)\b|^how.*\bpdf\b/.test(q)) {
+    return [
+      "### Exporting a CV as PDF",
+      "",
+      "1. Open **CV** (`/cv`) — or a role in **Pipeline** and its **CV Studio** — to tailor your CV for that role.",
+      "2. Generate the PDF from there and download it.",
+      "",
+      "If the PDF button is disabled, your CV isn't saved yet: upload it on `/cv` and click **Save** first.",
+    ].join("\n");
+  }
+
+  if (/\b(upload|import|load|add|save)\b.*\b(cv|resume)\b|\b(cv|resume)\b.*\b(upload|import)\b/.test(q) && /\b(how|where|can i|do i)\b/.test(q)) {
+    return [
+      "### Uploading your CV",
+      "",
+      "Open **CV** (`/cv`) or **Today** (`/`), drop your PDF, DOCX, LaTeX or Markdown resume, review the converted text and click **Save**. It is stored as `cv.md` and used for every evaluation and tailored CV.",
+      hasCv ? "\nYour CV is already saved — uploading a new one replaces it." : "",
+      '\n<<act:navigate {"path":"/cv"}>>',
+    ].join("\n");
+  }
+
+  if (/\bhow\b.*\b(add|save|track|import|put)\b.*\b(job|role|posting|url|link|offer)\b/.test(q)) {
+    return [
+      "### Adding a job to your pipeline",
+      "",
+      "- From **Explore**: click **Add to pipeline** on a card (or **Add all** for the visible results).",
+      "- Any job link: paste the URL on **Today** (`/`) or **Pipeline** (`/pipeline`).",
+      "- Then click **Evaluate** to get the scored report.",
+    ].join("\n");
+  }
+
+  if (/\bschedul\w*\b/.test(q) && /\b(scan|search|alert|job|how|what)\b/.test(q)) {
+    return [
+      "### Scheduled scans",
+      "",
+      "On **Scheduled scans** (`/scheduled-scans`) you can save an Explore search (roles + location filter) and have it re-run on a schedule, so new matching roles reach your inbox without you re-searching.",
+    ].join("\n");
+  }
+
+  if (/\bfollow[- ]?ups?\b/.test(q) && /\b(how|what|where|remind|track)\b/.test(q)) {
+    return [
+      "### Follow-ups",
+      "",
+      "**Follow-ups** (`/followups`) lists applications that are due a nudge, with drafts you can adapt. Update an application's status in **Pipeline** and it appears here when it's time to follow up.",
+    ].join("\n");
+  }
+
+  if (/\b(log ?in|log ?out|sign ?(in|out)|password|otp|forgot|my account)\b/.test(q)) {
+    return [
+      "### Account & sign-in",
+      "",
+      "Sign in on the login page with Google, an email one-time code, or a phone one-time code. If a code doesn't arrive, wait for the resend timer and check spam. To sign out, use the account menu in the app header.",
+    ].join("\n");
+  }
+
+  return "";
+}
+
+function buildAssistantResponseCore(prompt = "", cwd = process.cwd()) {
+  const rawPrompt = String(prompt || "");
+  const userMessage = extractLatestUserMessage(rawPrompt);
 
   const pageMatch = rawPrompt.match(/CURRENT PAGE[^\n]*:\s*([^\n]+)/);
   const currentPage = pageMatch ? pageMatch[1].trim() : "";
@@ -892,29 +1053,39 @@ export function buildAssistantResponse(prompt = "", cwd = process.cwd()) {
       q,
     )
   ) {
-    const companyMatch = userMessage.match(/\b(?:for|at|to)\s+([A-Z][A-Za-z0-9.& -]{1,30})/);
-    const targetCompany = companyMatch ? companyMatch[1].trim() : "your engineering team";
+    const companyMatch = userMessage.match(/\b(?:at|to|with)\s+([A-Z][A-Za-z0-9.&]*(?:\s+[A-Z][A-Za-z0-9.&]*){0,3})/) ||
+      userMessage.match(/\bfor\s+([A-Z][A-Za-z0-9.&]*(?:\s+[A-Z][A-Za-z0-9.&]*){0,3})\b(?!\s+(?:role|position|job))/);
+    const targetCompany = companyMatch ? companyMatch[1].trim() : "";
+    // Honour the role the user actually named ("…for a data analyst at Stripe").
+    const roleMatch = userMessage.match(/\b(?:for|as|apply(?:ing)?\s+(?:for|to))\s+(?:an?\s+|the\s+)?([A-Za-z][A-Za-z +/&.-]{2,40}?)(?=\s+(?:role|position|job|opening|vacancy|at|in|with|to)\b|[.?!,]|$)/i);
+    const namedRole = roleMatch && !/^(me|my|you|your|us|this|that|it)\b/i.test(roleMatch[1].trim())
+      && roleMatch[1].trim().toLowerCase() !== targetCompany.toLowerCase()
+      ? roleMatch[1].trim().replace(/\b\w/g, (c) => c.toUpperCase())
+      : "";
+    const targetRole = namedRole || uniqueRoles[0];
     const highlightExp = expHeaders[0] || "production software and AI-enabled systems";
+    const greeting = targetCompany ? `Dear Hiring Team at ${targetCompany},` : "Dear Hiring Manager,";
+    const teamRef = targetCompany ? `${targetCompany}'s roadmap` : "your team's roadmap";
 
     return [
       `### Tailored Cover Letter & Recruiter Outreach (${candidateName})`,
       "",
       "#### Option 1 — Short, High-Signal Cover Letter",
       "```markdown",
-      `Dear Hiring Team at ${targetCompany},`,
+      greeting,
       "",
-      `I am writing to apply for the ${uniqueRoles[0]} role. Based in ${candidateLocation}, I bring hands-on experience building and shipping production systems using ${topSkills.slice(0, 5).join(", ")}.`,
+      `I am writing to apply for the ${targetRole} role. Based in ${candidateLocation}, I bring hands-on experience building and shipping production systems using ${topSkills.slice(0, 5).join(", ")}.`,
       "",
       `In my recent work (${highlightExp}), I focused on turning complex technical requirements into reliable, scalable software with measurable performance and delivery improvements. I thrive in fast-paced engineering teams that value ownership, clean architecture, and customer impact.`,
       "",
-      `I would welcome the opportunity to discuss how my background in ${topSkills.slice(0, 3).join(", ")} can contribute to ${targetCompany}'s roadmap.`,
+      `I would welcome the opportunity to discuss how my background in ${topSkills.slice(0, 3).join(", ")} can contribute to ${teamRef}.`,
       "",
       "Best regards,",
       candidateName,
       "```",
       "",
       "#### Option 2 — LinkedIn / Recruiter Cold Note (< 400 chars)",
-      `> Hi! I noticed ${targetCompany} is hiring for **${uniqueRoles[0]}** roles. I'm a developer based in ${candidateLocation} experienced with **${topSkills.slice(0, 4).join(", ")}** (${highlightExp}). I'd love to share my CV and explore if my background is a strong fit for your team!`,
+      `> Hi! I noticed ${targetCompany || "your team"} is hiring for **${targetRole}** roles. I'm a developer based in ${candidateLocation} experienced with **${topSkills.slice(0, 4).join(", ")}** (${highlightExp}). I'd love to share my CV and explore if my background is a strong fit for your team!`,
     ].join("\n");
   }
 
@@ -926,10 +1097,17 @@ export function buildAssistantResponse(prompt = "", cwd = process.cwd()) {
   ) {
     const primaryProject = expHeaders[0] || "your primary full-stack / AI engineering project";
     const secondaryProject = expHeaders[1] || "your backend API & data pipeline work";
+    const interviewCompany = (userMessage.match(/\b(?:at|with|for)\s+([A-Z][A-Za-z0-9.&]*(?:\s+[A-Z][A-Za-z0-9.&]*){0,3})/) || [])[1] || "";
 
     return [
-      `### Personalized Interview Preparation Guide for **${candidateName}**`,
+      `### Personalized Interview Preparation Guide for **${candidateName}**${interviewCompany ? ` — ${interviewCompany}` : ""}`,
       "",
+      ...(interviewCompany
+        ? [
+            `**Before you talk to ${interviewCompany}:** read their careers page and recent engineering/product posts, note 2–3 products or values to reference, and prepare one question about the team's biggest current challenge. Run **Evaluate** on the exact posting in **Pipeline** for a role-specific report.`,
+            "",
+          ]
+        : []),
       "#### 1. Your 60-Second *\"Tell Me About Yourself\"* Pitch",
       `> *"I'm ${candidateName}, a software engineer based in ${candidateLocation} specializing in **${topSkills.slice(0, 5).join(", ")}**. Recently, I've been focused on **${primaryProject}**, where I built end-to-end features from architecture through deployment. What excites me most is solving real-world scalability and product challenges using modern full-stack and AI engineering practices, which is why I'm targeting **${uniqueRoles[0]}** roles."*`,
       "",
@@ -1030,22 +1208,18 @@ export function buildAssistantResponse(prompt = "", cwd = process.cwd()) {
       .join("\n");
   }
 
-  // ── INTENT 8: Dynamic General / Technical / Career Co-Pilot Response (Any Other Query) ──
+  // ── INTENT 8: Fallback — be honest about what was not understood ──
+  const hasCvForFallback = cvText.trim().length > 40;
   return [
-    `### Career Co-Pilot Response for **${candidateName}**`,
+    "### I'm not sure I understood that",
     "",
-    `Regarding your question: *"${userMessage.slice(0, 140)}"*`,
+    `I couldn't map *"${userMessage.slice(0, 140)}"* to something I can do well. I work best on job-search tasks:`,
     "",
-    `Here is how this applies to your profile (**${uniqueRoles.slice(0, 2).join(" / ")}** · **${candidateLocation}** · Stack: *${topSkills.slice(0, 6).join(", ")}*):`,
+    ...ASSISTANT_MENU,
     "",
-    `1. **Direct Recommendation:** Focus on roles where your hands-on experience in **${topSkills.slice(0, 4).join(", ")}**${expHeaders.length ? ` (especially *${expHeaders[0]}*)` : ""} solves immediate engineering bottlenecks.`,
-    `2. **Location & Market Strategy:** When searching on **Explore**, use the **Country → State / Province → Office / Branch City** filter (for example: **India → Karnataka → Bengaluru**, **Telangana → Hyderabad**, **Maharashtra → Pune / Mumbai**, or **Delhi NCR → Gurugram / Noida**) so you only see relevant local and remote openings.`,
-    "3. **What You Can Ask Me Next:**",
-    '   - *"Find software & AI jobs in India (Bengaluru / Hyderabad / Pune)"* (I will automatically launch a filtered scan for you)',
-    '   - *"Review my CV and rewrite my summary for demanding market jobs"*',
-    '   - *"Prepare me for technical and behavioral interview questions"*',
-    '   - *"Draft a cover letter and recruiter cold message"*',
-    '   - *"What salary / CTC LPA should I target and how do I negotiate?"*',
+    hasCvForFallback
+      ? `Your CV is on file (${topSkills.slice(0, 5).join(", ")}), so I'll tailor answers to it.`
+      : "Tip: upload your CV on **CV** (`/cv`) so I can tailor answers to you.",
   ].join("\n");
 }
 
@@ -1095,6 +1269,6 @@ export async function runCliShim(argv) {
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+if (isMainModule(import.meta.url)) {
   await runCliShim(process.argv.slice(2));
 }

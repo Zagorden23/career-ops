@@ -9,7 +9,7 @@ import { readGatewayAccount } from "@/lib/gateway-account.mjs";
 import "./globals.css";
 
 export const metadata = {
-  title: "career-ops — official web experience",
+  title: { default: "career-ops — official web experience", template: "%s · career-ops" },
   description: "The official, local-first web experience for career-ops.",
   // Home-screen / standalone (iOS): let our theme-color flow up to the status bar
   // + Dynamic Island; safe-area insets handle the layout.

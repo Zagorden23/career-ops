@@ -14,6 +14,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { R2Client } from "./r2-client.mjs";
+import { listTree } from "../lib/walk-tree.mjs";
 
 const EXCLUDE_SYNC_PATTERNS = [
   /\.tmp$/,
@@ -339,25 +340,15 @@ export class R2StorageAdapter {
     await this.processPendingSyncs({ duringFlush: true });
 
     // Full scan of user dirs to ensure nothing was missed
-    const scanDir = (dir, prefix = "") => {
-      const results = [];
-      if (!fs.existsSync(dir)) return results;
-      const list = fs.readdirSync(dir);
-      for (const item of list) {
-        if (EXCLUDE_SYNC_PATTERNS.some((pat) => pat.test(item))) continue;
-        const full = path.join(dir, item);
-        const rel = prefix ? `${prefix}/${item}` : item;
-        const stat = fs.statSync(full);
-        if (stat.isDirectory()) {
-          results.push(...scanDir(full, rel));
-        } else if (stat.isFile()) {
-          results.push(rel);
+    const files = [];
+    if (fs.existsSync(this.localDataRoot)) {
+      for (const abs of listTree(this.localDataRoot)) {
+        const rel = path.relative(this.localDataRoot, abs).replace(/\\/g, "/");
+        if (!EXCLUDE_SYNC_PATTERNS.some((pat) => pat.test(rel))) {
+          files.push(rel);
         }
       }
-      return results;
-    };
-
-    const files = scanDir(this.localDataRoot);
+    }
     let flushedCount = 0;
 
     for (const rel of files) {

@@ -189,7 +189,7 @@ export function CvMarketModifier({ cvContent = "", onApplyModifiedCv }) {
                 {analysis.readinessScore}%
               </span>
               {result?.afterScore && result.afterScore > analysis.readinessScore && (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-800 dark:text-emerald-400">
                   <ArrowRight className="size-3" /> {result.afterScore}% optimized
                 </span>
               )}
@@ -321,7 +321,7 @@ export function CvMarketModifier({ cvContent = "", onApplyModifiedCv }) {
                     {role.matchedSkills.slice(0, 6).map((sk) => (
                       <span
                         key={sk}
-                        className="rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-700 dark:text-emerald-300"
+                        className="rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-800 dark:text-emerald-300"
                       >
                         ✓ {sk}
                       </span>
@@ -402,7 +402,7 @@ export function CvMarketModifier({ cvContent = "", onApplyModifiedCv }) {
       </div>
 
       {error && (
-        <p role="alert" className="mt-3 text-xs text-red-600 dark:text-red-400">
+        <p role="alert" className="mt-3 text-xs text-red-800 dark:text-red-400">
           {error}
         </p>
       )}
@@ -444,7 +444,7 @@ export function CvMarketModifier({ cvContent = "", onApplyModifiedCv }) {
           </div>
 
           {appliedBanner && (
-            <p className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
+            <p className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-800 dark:text-emerald-300">
               ✓ Applied to your CV editor above and queued for auto-save to <code>cv.md</code>!
             </p>
           )}
